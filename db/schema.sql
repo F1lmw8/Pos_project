@@ -12,6 +12,7 @@ CREATE TABLE drugs (
     unit VARCHAR(100),                     -- Package Unit (matches 'u')
     strength TEXT,                         -- Strength (matches 's')
     dosage_form TEXT,                      -- Dosage form (matches 'd')
+    reorder_point INTEGER DEFAULT 10 CHECK (reorder_point >= 0),
     popularity_score INTEGER DEFAULT 0,    -- Popularity metric (Best-seller boost)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -38,14 +39,31 @@ CREATE TABLE sales (
     transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00 CHECK (total_amount >= 0.00),
     payment_method VARCHAR(50) NOT NULL,  -- 'cash', 'qr_promptpay', 'credit_card'
+    staff_id VARCHAR(50) DEFAULT 'STAFF-001',
+    discount DECIMAL(10, 2) DEFAULT 0.00 CHECK (discount >= 0.00),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Sale Items Table (Sales Line-Items)
+-- 4. Inventory Lots Table (FEFO Stock Ledger)
+CREATE TABLE inventory_lots (
+    id SERIAL PRIMARY KEY,
+    drug_id VARCHAR(50) NOT NULL REFERENCES drugs(tmt_id) ON DELETE CASCADE,
+    lot_number VARCHAR(100) NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity >= 0),
+    cost_price DECIMAL(10, 2) NOT NULL CHECK (cost_price >= 0.00),
+    expiry_date DATE NOT NULL,
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_inventory_lots_drug ON inventory_lots(drug_id);
+CREATE INDEX idx_inventory_lots_expiry ON inventory_lots(expiry_date);
+
+-- 5. Sale Items Table (Sales Line-Items)
 CREATE TABLE sale_items (
     id SERIAL PRIMARY KEY,
     sale_id VARCHAR(50) NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
     drug_id VARCHAR(50) NOT NULL REFERENCES drugs(tmt_id),
+    lot_id INTEGER REFERENCES inventory_lots(id) ON DELETE SET NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price DECIMAL(10, 2) NOT NULL CHECK (unit_price >= 0.00),
     subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0.00),

@@ -72,7 +72,8 @@ export default function DashboardPage() {
   const paymentColors = {
     cash: '#0d9488',          // Teal
     qr_promptpay: '#0284c7',  // Blue
-    credit_card: '#8b5cf6'   // Purple
+    true_wallet: '#f97316',   // Orange
+    credit_card: '#8b5cf6'    // Purple
   };
 
   // Process P&L values
@@ -96,6 +97,7 @@ export default function DashboardPage() {
     return [
       { name: 'เงินสด', value: pm.cash.amount, key: 'cash' },
       { name: 'PromptPay QR', value: pm.qr_promptpay.amount, key: 'qr_promptpay' },
+      { name: 'TrueWallet PP', value: pm.true_wallet.amount, key: 'true_wallet' },
       { name: 'บัตรเครดิต', value: pm.credit_card.amount, key: 'credit_card' }
     ].filter(item => item.value > 0);
   }, [reportData]);
@@ -175,6 +177,14 @@ export default function DashboardPage() {
           onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#64748b'; }}
         >
           📜 ประวัติธุรกรรมการขาย
+        </Link>
+        <Link 
+          href="/dashboard/stock" 
+          style={{ textDecoration: 'none', background: '#ffffff', color: '#64748b', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0d9488'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#64748b'; }}
+        >
+          📦 สินค้าคงเหลือ
         </Link>
         <Link 
           href="/dashboard/stock-in" 
@@ -371,9 +381,9 @@ export default function DashboardPage() {
 
           {/* Legends */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '12px' }}>
-            {['cash', 'qr_promptpay', 'credit_card'].map(key => {
+            {['cash', 'qr_promptpay', 'true_wallet', 'credit_card'].map(key => {
               const pm = reportData?.data?.payment_methods?.[key] || { count: 0, amount: 0 };
-              const label = key === 'cash' ? 'เงินสด' : key === 'qr_promptpay' ? 'PromptPay QR' : 'บัตรเครดิต';
+              const label = key === 'cash' ? 'เงินสด' : key === 'qr_promptpay' ? 'PromptPay QR' : key === 'true_wallet' ? 'TrueWallet PP' : 'บัตรเครดิต';
               return (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

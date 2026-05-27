@@ -21,6 +21,13 @@ export async function POST(request) {
       );
     }
 
+    if (!['cash', 'qr_promptpay', 'credit_card'].includes(payment_method)) {
+      return NextResponse.json(
+        { success: false, error: 'Payment method is not supported' },
+        { status: 400 }
+      );
+    }
+
     // Connect a client from pool to handle transaction
     const client = await pool.connect();
     
@@ -58,7 +65,43 @@ export async function POST(request) {
           throw new Error(`INSUFFICIENT_STOCK:${drug_id}:${currentStock}:${quantity}`);
         }
 
-        // Decrement stock
+        const lotResult = await client.query(
+          `SELECT id, lot_number, quantity, cost_price, expiry_date
+           FROM inventory_lots
+           WHERE drug_id = $1 AND quantity > 0 AND expiry_date >= CURRENT_DATE
+           ORDER BY expiry_date ASC, received_at ASC, id ASC
+           FOR UPDATE`,
+          [drug_id]
+        );
+
+        let remainingQty = Number(quantity);
+        const consumedLots = [];
+
+        for (const lot of lotResult.rows) {
+          if (remainingQty <= 0) break;
+
+          const lotQty = Number(lot.quantity);
+          const consumeQty = Math.min(remainingQty, lotQty);
+
+          await client.query(
+            'UPDATE inventory_lots SET quantity = quantity - $1 WHERE id = $2',
+            [consumeQty, lot.id]
+          );
+
+          consumedLots.push({
+            lot_id: lot.id,
+            lot_number: lot.lot_number,
+            quantity: consumeQty,
+            cost_price: Number(lot.cost_price)
+          });
+
+          remainingQty -= consumeQty;
+        }
+
+        if (remainingQty > 0) {
+          throw new Error(`INSUFFICIENT_LOT_STOCK:${drug_id}:${quantity - remainingQty}:${quantity}`);
+        }
+
         await client.query(
           'UPDATE inventory SET stock_quantity = stock_quantity - $1 WHERE drug_id = $2',
           [quantity, drug_id]
@@ -74,30 +117,37 @@ export async function POST(request) {
         const subtotal = quantity * unit_price;
         calculatedTotal += subtotal;
 
-        processedItems.push({
-          drug_id,
-          trade_name: tradeName,
-          unit: drugInfo.rows[0]?.unit || 'tablet',
-          strength: drugInfo.rows[0]?.strength || '',
-          quantity,
-          unit_price,
-          subtotal
+        consumedLots.forEach((lot) => {
+          processedItems.push({
+            drug_id,
+            trade_name: tradeName,
+            unit: drugInfo.rows[0]?.unit || 'tablet',
+            strength: drugInfo.rows[0]?.strength || '',
+            quantity: lot.quantity,
+            unit_price,
+            subtotal: lot.quantity * unit_price,
+            lot_id: lot.lot_id,
+            lot_number: lot.lot_number
+          });
         });
       }
+
+      const vat = Number((calculatedTotal * 0.07).toFixed(2));
+      const totalDue = Number((calculatedTotal + vat).toFixed(2));
 
       // 3. Save Sales main record
       await client.query(
         `INSERT INTO sales (id, total_amount, payment_method)
          VALUES ($1, $2, $3)`,
-        [txId, calculatedTotal, payment_method]
+        [txId, totalDue, payment_method]
       );
 
       // 4. Save Sales line-items & increment popularity score
       for (const item of processedItems) {
         await client.query(
-          `INSERT INTO sale_items (sale_id, drug_id, quantity, unit_price, subtotal)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [txId, item.drug_id, item.quantity, item.unit_price, item.subtotal]
+          `INSERT INTO sale_items (sale_id, drug_id, quantity, unit_price, subtotal, lot_id)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [txId, item.drug_id, item.quantity, item.unit_price, item.subtotal, item.lot_id]
         );
 
         // Dynamic Popularity: Boost score by the quantity sold
@@ -115,7 +165,9 @@ export async function POST(request) {
         success: true,
         transaction: {
           id: txId,
-          total: calculatedTotal,
+          subtotal: calculatedTotal,
+          vat,
+          total: totalDue,
           payment_method,
           date: new Date().toISOString(),
           items: processedItems
@@ -137,6 +189,17 @@ export async function POST(request) {
         return NextResponse.json({
           success: false,
           error: `ยารายการ "${tradeName}" มีจำนวนคงคลังไม่เพียงพอ (สต็อกปัจจุบัน: ${current} ชิ้น, ต้องการ: ${requested} ชิ้น)`
+        }, { status: 400 });
+      }
+
+      if (txError.message.startsWith('INSUFFICIENT_LOT_STOCK:')) {
+        const [, drugId, current, requested] = txError.message.split(':');
+        const drugResult = await client.query('SELECT trade_name FROM drugs WHERE tmt_id = $1', [drugId]);
+        const tradeName = drugResult.rows[0]?.trade_name || 'Unknown Drug';
+
+        return NextResponse.json({
+          success: false,
+          error: `ยา "${tradeName}" ไม่มีล็อตที่ขายได้ตาม FEFO เพียงพอ (ล็อตพร้อมขาย: ${current} ชิ้น, ต้องการ: ${requested} ชิ้น) กรุณานำเข้าล็อตสินค้า/ตรวจวันหมดอายุก่อนขาย`
         }, { status: 400 });
       }
 

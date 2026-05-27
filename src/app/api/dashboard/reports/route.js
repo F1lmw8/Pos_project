@@ -172,6 +172,7 @@ export async function GET(request) {
     const paymentMethodsBreakdown = {
       cash: { count: 0, amount: 0.00 },
       qr_promptpay: { count: 0, amount: 0.00 },
+      true_wallet: { count: 0, amount: 0.00 },
       credit_card: { count: 0, amount: 0.00 }
     };
 

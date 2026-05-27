@@ -15,6 +15,7 @@ export default function StockInPage() {
   const [lotNumber, setLotNumber] = useState('');
   const [stockQty, setStockQty] = useState('');
   const [stockCost, setStockCost] = useState('');
+  const [stockPrice, setStockPrice] = useState('');
   const [stockExpiry, setStockExpiry] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [formError, setFormError] = useState('');
@@ -61,10 +62,38 @@ export default function StockInPage() {
     }
   };
 
+  const generateLotNumber = (drug) => {
+    const now = new Date();
+    const datePart = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('');
+    const timePart = [
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0')
+    ].join('');
+
+    return `LOT-${datePart}-${drug.tmt_id}-${timePart}`;
+  };
+
   const selectSuggestion = (drug) => {
     setSelectedStockDrug(drug);
     setStockSearchQuery(`${drug.trade_name} (TMT-${drug.tmt_id})`);
+    setLotNumber(generateLotNumber(drug));
+    setStockPrice(drug.price && Number(drug.price) > 0 ? Number(drug.price).toFixed(2) : '');
     setStockSuggestions([]);
+  };
+
+  const handleStockCostChange = (value) => {
+    setStockCost(value);
+
+    if (!stockPrice && value !== '') {
+      const cost = Number(value);
+      if (Number.isFinite(cost) && cost >= 0) {
+        setStockPrice((cost * 1.3).toFixed(2));
+      }
+    }
   };
 
   // Process incoming stock lot submission
@@ -77,7 +106,7 @@ export default function StockInPage() {
       setFormError('กรุณาค้นหาและเลือกตัวยาที่ต้องการนำเข้าจากระบบ');
       return;
     }
-    if (!lotNumber || !stockQty || !stockCost || !stockExpiry) {
+    if (!lotNumber || !stockQty || !stockCost || !stockPrice || !stockExpiry) {
       setFormError('กรุณากรอกข้อมูลนำเข้าล็อตยาให้ครบถ้วนทุกช่อง');
       return;
     }
@@ -92,6 +121,7 @@ export default function StockInPage() {
           lot_number: lotNumber,
           quantity: parseInt(stockQty, 10),
           cost_price: parseFloat(stockCost),
+          selling_price: parseFloat(stockPrice),
           expiry_date: stockExpiry
         })
       });
@@ -105,6 +135,7 @@ export default function StockInPage() {
         setLotNumber('');
         setStockQty('');
         setStockCost('');
+        setStockPrice('');
         setStockExpiry('');
         
         // Refresh alerts and stock history sidebar
@@ -170,6 +201,14 @@ export default function StockInPage() {
           📜 ประวัติธุรกรรมการขาย
         </Link>
         <Link 
+          href="/dashboard/stock" 
+          style={{ textDecoration: 'none', background: '#ffffff', color: '#64748b', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0d9488'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#64748b'; }}
+        >
+          📦 สินค้าคงเหลือ
+        </Link>
+        <Link 
           href="/dashboard/stock-in" 
           style={{ textDecoration: 'none', background: '#0d9488', color: '#ffffff', border: '1px solid #0d9488', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
         >
@@ -216,6 +255,9 @@ export default function StockInPage() {
                     >
                       <strong style={{ color: 'var(--color-primary)' }}>{drug.trade_name}</strong> {drug.strength} 
                       <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>(TMT-{drug.tmt_id})</span>
+                      {drug.price && Number(drug.price) > 0 && (
+                        <span style={{ fontSize: '11px', color: '#0d9488', marginLeft: '8px', fontWeight: 'bold' }}>ขาย ฿{Number(drug.price).toFixed(2)}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -251,8 +293,8 @@ export default function StockInPage() {
               </div>
             </div>
 
-            {/* Cost price and Expiry date row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            {/* Cost price, selling price, and Expiry date row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>
                   💰 ราคาต้นทุนนำเข้าต่อชิ้น (฿):
@@ -262,7 +304,21 @@ export default function StockInPage() {
                   step="0.01"
                   placeholder="เช่น 15.50"
                   value={stockCost}
-                  onChange={(e) => setStockCost(e.target.value)}
+                  onChange={(e) => handleStockCostChange(e.target.value)}
+                  style={{ width: '100%', height: '42px', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0 14px', fontSize: '14px', outline: 'none' }}
+                  min="0"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>
+                  ราคาขายหน้าร้านต่อชิ้น (฿):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="เช่น 20.00"
+                  value={stockPrice}
+                  onChange={(e) => setStockPrice(e.target.value)}
                   style={{ width: '100%', height: '42px', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0 14px', fontSize: '14px', outline: 'none' }}
                   min="0"
                 />

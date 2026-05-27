@@ -96,10 +96,10 @@ export async function POST(request) {
   let client;
   try {
     const body = await request.json();
-    const { drug_id, lot_number, quantity, cost_price, expiry_date } = body;
+    const { drug_id, lot_number, quantity, cost_price, selling_price, expiry_date } = body;
 
     // A. Input validation
-    if (!drug_id || !lot_number || !quantity || !cost_price || !expiry_date) {
+    if (!drug_id || !lot_number || !quantity || !cost_price || !selling_price || !expiry_date) {
       return NextResponse.json(
         { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน (รหัสยา TMT, หมายเลขล็อต, จำนวนนำเข้า, ต้นทุน, วันหมดอายุ)' },
         { status: 400 }
@@ -108,6 +108,7 @@ export async function POST(request) {
 
     const qty = parseInt(quantity, 10);
     const cost = parseFloat(cost_price);
+    const retailPrice = parseFloat(selling_price);
 
     if (isNaN(qty) || qty <= 0) {
       return NextResponse.json(
@@ -119,6 +120,13 @@ export async function POST(request) {
     if (isNaN(cost) || cost < 0) {
       return NextResponse.json(
         { success: false, error: 'ราคาต้นทุนคลังต้องไม่ต่ำกว่า 0.00 บาท' },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(retailPrice) || retailPrice < 0) {
+      return NextResponse.json(
+        { success: false, error: 'ราคาขายหน้าร้านต้องไม่ต่ำกว่า 0.00 บาท' },
         { status: 400 }
       );
     }
@@ -149,19 +157,16 @@ export async function POST(request) {
     
     const lotId = insertLotRes.rows[0].id;
 
-    // 3. Upsert into inventory table (Increment stock level & auto-calculate a retail price if new)
-    // Dynamic Pricing Default: 30% markup on cost if no retail price currently exists
-    const defaultRetailPrice = parseFloat((cost * 1.30).toFixed(2));
-
+    // 3. Upsert into inventory table and update the current retail selling price.
     await client.query(`
       INSERT INTO inventory (drug_id, stock_quantity, price)
       VALUES ($1, $2, $3)
       ON CONFLICT (drug_id) DO UPDATE 
       SET 
         stock_quantity = inventory.stock_quantity + EXCLUDED.stock_quantity,
-        price = CASE WHEN inventory.price = 0.00 THEN EXCLUDED.price ELSE inventory.price END,
+        price = EXCLUDED.price,
         updated_at = CURRENT_TIMESTAMP
-    `, [drug_id, qty, defaultRetailPrice]);
+    `, [drug_id, qty, retailPrice]);
 
     // Commit transaction
     await client.query('COMMIT');
@@ -174,7 +179,8 @@ export async function POST(request) {
         drug_id,
         trade_name: tradeName,
         quantity: qty,
-        cost_price: cost
+        cost_price: cost,
+        selling_price: retailPrice
       }
     });
 

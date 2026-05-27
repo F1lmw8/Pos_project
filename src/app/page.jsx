@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { createPromptPayQrService, isQrPaymentMethod } from '../utils/paymentQr';
+
+const PROMPTPAY_ID = '0989342456';
 
 export default function PosRegisterPage() {
   // Application State
@@ -18,6 +21,7 @@ export default function PosRegisterPage() {
   const [cashReceived, setCashReceived] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [promptPayQr, setPromptPayQr] = useState('');
 
   // 1. Fetch products from PostgreSQL based on search query
   const fetchProducts = async (query = '') => {
@@ -205,12 +209,43 @@ export default function PosRegisterPage() {
 
   const vat = useMemo(() => subtotal * 0.07, [subtotal]);
   const grandTotal = useMemo(() => subtotal + vat, [subtotal, vat]);
+  const promptPayQrService = useMemo(() => createPromptPayQrService(PROMPTPAY_ID), []);
 
   const cashChange = useMemo(() => {
     const received = parseFloat(cashReceived);
     if (isNaN(received) || received < grandTotal) return 0;
     return received - grandTotal;
   }, [cashReceived, grandTotal]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isQrPaymentMethod(paymentMethod) || grandTotal <= 0) {
+      setPromptPayQr('');
+      return;
+    }
+
+    const buildQr = async () => {
+      try {
+        const qrDataUrl = await promptPayQrService.createDataUrl(grandTotal);
+
+        if (!cancelled) {
+          setPromptPayQr(qrDataUrl);
+        }
+      } catch (error) {
+        console.error('PromptPay QR generation failed:', error);
+        if (!cancelled) {
+          setPromptPayQr('');
+        }
+      }
+    };
+
+    buildQr();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentMethod, grandTotal, promptPayQrService]);
 
   // 5. Checkout Handler
   const handleCheckout = async () => {
@@ -251,10 +286,11 @@ export default function PosRegisterPage() {
         // Store receipt details to show dynamic print modal
         setReceipt({
           ...result.transaction,
-          cashReceived: paymentMethod === 'cash' ? parseFloat(cashReceived) : grandTotal,
+          cashReceived: paymentMethod === 'cash' ? parseFloat(cashReceived) : result.transaction.total,
           change: paymentMethod === 'cash' ? cashChange : 0,
-          subtotal,
-          vat
+          subtotal: result.transaction.subtotal ?? subtotal,
+          vat: result.transaction.vat ?? vat,
+          promptPayQr: isQrPaymentMethod(paymentMethod) ? promptPayQr : ''
         });
         
         // Success: Reset checkout parameters
@@ -575,6 +611,23 @@ export default function PosRegisterPage() {
             </div>
           )}
 
+          {isQrPaymentMethod(paymentMethod) && cartItemsArray.length > 0 && (
+            <div className="promptpay-panel">
+              <div className="promptpay-qr-frame">
+                {promptPayQr ? (
+                  <img src={promptPayQr} alt="PromptPay QR" className="promptpay-qr-image" />
+                ) : (
+                  <div className="spinner"></div>
+                )}
+              </div>
+              <div className="promptpay-details">
+                <strong>PromptPay / Kasikorn</strong>
+                <span>ID: {PROMPTPAY_ID}</span>
+                <span>Fixed amount: ฿{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
           {/* Server/Checkout error messages */}
           {errorMsg && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderRadius: '6px', padding: '10px', fontSize: '12px', color: '#fca5a5' }}>
@@ -630,7 +683,9 @@ export default function PosRegisterPage() {
                 <div key={idx} className="receipt-row item-line">
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 'bold' }}>{item.trade_name}</span>
-                    <span style={{ fontSize: '10px', color: '#6b7280' }}>TMT-{item.drug_id} {item.strength}</span>
+                    <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                      TMT-{item.drug_id} {item.strength} {item.lot_number ? `Lot ${item.lot_number}` : ''}
+                    </span>
                   </div>
                   <span style={{ width: '60px', textAlign: 'center', alignSelf: 'center' }}>{item.quantity} {item.unit}</span>
                   <span style={{ width: '80px', textAlign: 'right', alignSelf: 'center' }}>{item.subtotal.toFixed(2)}</span>
@@ -667,8 +722,9 @@ export default function PosRegisterPage() {
             </div>
 
             <div className="receipt-footer">
-              {receipt.payment_method !== 'cash' && (
-                <div className="receipt-qr-code">
+              {isQrPaymentMethod(receipt.payment_method) && receipt.promptPayQr && (
+                <div className="receipt-qr-code promptpay-receipt-qr">
+                  <img src={receipt.promptPayQr} alt="PromptPay QR" />
                   [ QR PROMPTPAY ]
                   <br />
                   ตรวจสอบสต็อกแล้ว

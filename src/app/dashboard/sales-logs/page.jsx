@@ -118,6 +118,14 @@ export default function SalesLogsPage() {
           📜 ประวัติธุรกรรมการขาย
         </Link>
         <Link 
+          href="/dashboard/stock" 
+          style={{ textDecoration: 'none', background: '#ffffff', color: '#64748b', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0d9488'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#64748b'; }}
+        >
+          📦 สินค้าคงเหลือ
+        </Link>
+        <Link 
           href="/dashboard/stock-in" 
           style={{ textDecoration: 'none', background: '#ffffff', color: '#64748b', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0d9488'; }}
@@ -213,7 +221,7 @@ export default function SalesLogsPage() {
                   filteredSalesLogs.map((sale) => {
                     const isExpanded = expandedSaleId === sale.id;
                     const formattedDate = new Date(sale.transaction_date).toLocaleString('th-TH');
-                    const pMethodLabel = sale.payment_method === 'cash' ? '💵 เงินสด' : sale.payment_method === 'qr_promptpay' ? '📱 PromptPay QR' : '💳 บัตรเครดิต';
+                    const pMethodLabel = sale.payment_method === 'cash' ? '💵 เงินสด' : sale.payment_method === 'qr_promptpay' ? '📱 PromptPay QR' : sale.payment_method === 'true_wallet' ? '🧾 TrueWallet PP' : '💳 บัตรเครดิต';
                     
                     return (
                       <React.Fragment key={sale.id}>
