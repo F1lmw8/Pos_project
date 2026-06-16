@@ -1,5 +1,6 @@
 import React from 'react';
 import './globals.css';
+import ChatbotWidget from '../components/ChatbotWidget';
 
 export const metadata = {
   title: 'Pharmacy POS - ระบบขายหน้าร้านคลังยามาตรฐาน TMT',
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
         <div id="root">
           {children}
         </div>
+        <ChatbotWidget />
       </body>
     </html>
   );

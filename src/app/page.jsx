@@ -331,45 +331,27 @@ export default function PosRegisterPage() {
       {/* LEFT SECTION: Search & Drug Products Grid */}
       <section className="catalogue-section">
         <header className="pos-header">
-          <div>
-            <h1 className="brand-title">
-              💊 RDU POS <span className="brand-badge">Front Counter</span>
-            </h1>
-          </div>
+          <h1 className="brand-title">
+            <div className="brand-icon">💊</div>
+            RDU Pharmacy POS
+            <span className="brand-badge">Front Counter</span>
+          </h1>
           <div className="header-status">
-            <Link 
-              href="/dashboard" 
-              style={{ 
-                background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)', 
-                color: '#fff', 
-                textDecoration: 'none', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '6px 14px', 
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(13, 148, 136, 0.2)',
-                transition: 'all 0.2s ease',
-                marginRight: '12px',
-                fontSize: '12px'
-              }}
-            >
-              📊 ดูสรุปยอด & รายงานคลัง
+            <Link href="/dashboard" className="btn btn-outline btn-sm">
+              ◎ รายงาน &amp; คลัง
             </Link>
             <span className="status-dot"></span>
-            <span>คลังยาเชื่อมต่อออนไลน์</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ออนไลน์</span>
           </div>
         </header>
 
         {/* Real-time search bar */}
         <div className="search-container">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon">⌕</span>
           <input
             type="text"
             className="search-input"
-            placeholder="ค้นหายาด้วยชื่อการค้า ชื่อยาสามัญ หรือรหัส TMT (พิมพ์ 2 ตัวอักษรขึ้นไป)..."
+            placeholder="ค้นหายาด้วยชื่อการค้า ชื่อสามัญ หรือรหัส TMT..."
             value={searchQuery}
             onChange={handleSearchChange}
           />
@@ -383,13 +365,13 @@ export default function PosRegisterPage() {
         {/* Filter Scroll Buttons */}
         <div className="filter-scroll">
           {[
-            { id: 'ALL', name: '💊 ยาทั้งหมด' },
-            { id: 'tablet', name: '💊 ยาเม็ด (Tablet)' },
-            { id: 'capsule', name: '💊 ยาแคปซูล (Capsule)' },
-            { id: 'liquid', name: '🍼 ยาน้ำ (Liquid)' },
-            { id: 'cream', name: '🧴 ยาทาภายนอก (Cream/Ointment)' },
-            { id: 'injection', name: '💉 ยาฉีด (Injection)' },
-            { id: 'others', name: '📦 อื่นๆ' }
+            { id: 'ALL', name: 'ยาทั้งหมด' },
+            { id: 'tablet', name: 'ยาเม็ด' },
+            { id: 'capsule', name: 'ยาแคปซูล' },
+            { id: 'liquid', name: 'ยาน้ำ' },
+            { id: 'cream', name: 'ยาทาภายนอก' },
+            { id: 'injection', name: 'ยาฉีด' },
+            { id: 'others', name: 'อื่นๆ' }
           ].map(filter => (
             <button
               key={filter.id}
@@ -403,9 +385,9 @@ export default function PosRegisterPage() {
 
         {/* Main Products Grid */}
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '12px' }}>
-            <div className="spinner" style={{ width: '40px', height: '40px', borderWidth: '3px' }}></div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>กำลังค้นหารายการยาแบบเรียลไทม์...</p>
+          <div className="loading-center" style={{ flex: 1 }}>
+            <div className="spinner" style={{ width: '32px', height: '32px' }}></div>
+            <span>กำลังค้นหารายการยา...</span>
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="product-grid">
@@ -419,19 +401,19 @@ export default function PosRegisterPage() {
                   <div className="card-header">
                     <span className="tmt-id-label">TMT-{product.tmt_id}</span>
                     <span className={`stock-badge ${isOutOfStock ? 'no-stock' : isLowStock ? 'low-stock' : 'in-stock'}`}>
-                      {isOutOfStock ? 'สินค้าหมด' : `คงเหลือ ${product.stock_quantity} ${product.unit}`}
+                      {isOutOfStock ? 'หมดสต็อก' : `${product.stock_quantity} ${product.unit}`}
                     </span>
                   </div>
 
                   <div className="card-body">
                     <h3 className="drug-title">{product.trade_name}</h3>
                     <div className="drug-details">
-                      {product.strength && <span className="brand-badge">{product.strength}</span>}
-                      {product.dosage_form && <span className="filter-badge" style={{ padding: '2px 8px', fontSize: '10px' }}>{product.dosage_form}</span>}
+                      {product.strength && <span className="drug-tag">{product.strength}</span>}
+                      {product.dosage_form && <span className="drug-tag">{product.dosage_form}</span>}
                     </div>
                     {product.active_ingredient && (
                       <p className="drug-desc" title={product.active_ingredient}>
-                        🔬 {product.active_ingredient}
+                        {product.active_ingredient}
                       </p>
                     )}
                   </div>
@@ -459,7 +441,7 @@ export default function PosRegisterPage() {
                         <button className="qty-btn" onClick={() => updateQuantity(product.tmt_id, 1)}>+</button>
                       </div>
                     ) : (
-                      <button className="add-btn" onClick={() => addToCart(product)}>เพิ่มเข้าตะกร้า</button>
+                      <button className="add-btn" onClick={() => addToCart(product)}>+ เพิ่ม</button>
                     )}
                   </div>
                 </div>
@@ -467,10 +449,12 @@ export default function PosRegisterPage() {
             })}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-muted)' }}>
-            <span style={{ fontSize: '48px' }}>🔎</span>
-            <h3 style={{ margin: '12px 0 4px 0', color: 'var(--text-primary)' }}>ไม่พบข้อมูลยา</h3>
-            <p style={{ fontSize: '14px' }}>ลองเปลี่ยนคำค้นหา หรือสะกดคำค้นใหม่อีกครั้ง</p>
+          <div className="empty-state" style={{ flex: 1 }}>
+            <div className="empty-icon">⌕</div>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>ไม่พบรายการยา</div>
+              <div>ลองเปลี่ยนคำค้นหา หรือสะกดคำค้นใหม่อีกครั้ง</div>
+            </div>
           </div>
         )}
       </section>
@@ -479,12 +463,12 @@ export default function PosRegisterPage() {
       <section className="cart-section">
         <header className="cart-header">
           <h2 className="cart-title">
-            🛒 รายการสั่งซื้อ
+            รายการชำระเงิน
             {cartItemsArray.length > 0 && <span className="cart-count-badge">{cartItemsArray.length}</span>}
           </h2>
           {cartItemsArray.length > 0 && (
             <button className="clear-cart-btn" onClick={clearCart}>
-              ล้างตะกร้า
+              ล้างรายการ
             </button>
           )}
         </header>
@@ -499,11 +483,11 @@ export default function PosRegisterPage() {
                     {item.product.trade_name}
                   </span>
                   <span className="item-meta">
-                    ฿{Number(item.product.price).toFixed(2)} x {item.quantity} {item.product.unit}
+                    ฿{Number(item.product.price).toFixed(2)} × {item.quantity} {item.product.unit}
                   </span>
                 </div>
 
-                <div className="qty-counter-control" style={{ marginRight: '8px' }}>
+                <div className="qty-counter-control">
                   <button className="qty-btn" onClick={() => updateQuantity(item.product.tmt_id, -1)}>−</button>
                   <input
                     type="number"
@@ -521,16 +505,19 @@ export default function PosRegisterPage() {
                   ฿{(item.product.price * item.quantity).toFixed(2)}
                 </span>
 
-                <button className="remove-item-btn" onClick={() => removeFromCart(item.product.tmt_id)}>
-                  🗑️
+                <button className="remove-item-btn" onClick={() => removeFromCart(item.product.tmt_id)}
+                  title="ลบรายการ">
+                  ✕
                 </button>
               </div>
             ))
           ) : (
             <div className="empty-cart-state">
-              <span className="empty-cart-icon">🛒</span>
-              <p>เครื่องรับชำระเงินยังว่างอยู่</p>
-              <p style={{ fontSize: '12px' }}>คลิกเลือกรายการยาด้านซ้ายเพื่อทำรายการ</p>
+              <div className="empty-cart-icon">🛒</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>ยังไม่มีรายการ</div>
+                <div style={{ fontSize: '12px' }}>เลือกยาด้านซ้ายเพื่อเพิ่มรายการ</div>
+              </div>
             </div>
           )}
         </div>
@@ -539,72 +526,61 @@ export default function PosRegisterPage() {
         <footer className="checkout-footer">
           <div className="summary-rows">
             <div className="summary-row">
-              <span>ราคารวมสินค้า (Subtotal)</span>
+              <span>ราคารวม (Subtotal)</span>
               <span>฿{subtotal.toFixed(2)}</span>
             </div>
             <div className="summary-row">
-              <span>ภาษีมูลค่าเพิ่ม (VAT 7%)</span>
+              <span>VAT 7%</span>
               <span>฿{vat.toFixed(2)}</span>
             </div>
             <div className="summary-row grand-total">
-              <span>ยอดชำระทั้งสิ้น</span>
+              <span>ยอดชำระ</span>
               <span>฿{grandTotal.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Payment Method Selector Grid */}
+          {/* Payment Method Selector */}
           <div className="payment-grid">
             <button
               className={`payment-btn ${paymentMethod === 'cash' ? 'active' : ''}`}
-              onClick={() => {
-                setPaymentMethod('cash');
-                setErrorMsg('');
-              }}
+              onClick={() => { setPaymentMethod('cash'); setErrorMsg(''); }}
             >
-              💵 เงินสด
+              <span className="payment-btn-icon">💵</span>
+              เงินสด
             </button>
             <button
               className={`payment-btn ${paymentMethod === 'qr_promptpay' ? 'active' : ''}`}
-              onClick={() => {
-                setPaymentMethod('qr_promptpay');
-                setCashReceived('');
-                setErrorMsg('');
-              }}
+              onClick={() => { setPaymentMethod('qr_promptpay'); setCashReceived(''); setErrorMsg(''); }}
             >
-              📱 PromptPay QR
+              <span className="payment-btn-icon">📱</span>
+              PromptPay
             </button>
             <button
               className={`payment-btn ${paymentMethod === 'credit_card' ? 'active' : ''}`}
-              onClick={() => {
-                setPaymentMethod('credit_card');
-                setCashReceived('');
-                setErrorMsg('');
-              }}
+              onClick={() => { setPaymentMethod('credit_card'); setCashReceived(''); setErrorMsg(''); }}
             >
-              💳 บัตรเครดิต
+              <span className="payment-btn-icon">💳</span>
+              บัตรเครดิต
             </button>
           </div>
 
-          {/* Cash Received Input Field */}
+          {/* Cash Received Input */}
           {paymentMethod === 'cash' && cartItemsArray.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                รับเงินสดมา (Cash Received):
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>฿</span>
+            <div className="cash-input-area">
+              <label className="cash-input-label">รับเงินสดมา</label>
+              <div className="cash-input-wrapper">
+                <span className="cash-prefix">฿</span>
                 <input
                   type="number"
-                  className="search-input"
-                  style={{ height: '40px', paddingLeft: '30px', fontSize: '14px' }}
-                  placeholder="กรอกจำนวนเงินสด..."
+                  className="cash-input"
+                  placeholder="0.00"
                   value={cashReceived}
                   onChange={(e) => setCashReceived(e.target.value)}
                 />
               </div>
               {cashReceived && parseFloat(cashReceived) >= grandTotal && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-success)', fontWeight: 'bold', marginTop: '2px' }}>
-                  <span>เงินทอน:</span>
+                <div className="change-display">
+                  <span>เงินทอน</span>
                   <span>฿{cashChange.toFixed(2)}</span>
                 </div>
               )}
@@ -621,35 +597,26 @@ export default function PosRegisterPage() {
                 )}
               </div>
               <div className="promptpay-details">
-                <strong>PromptPay / Kasikorn</strong>
+                <strong>PromptPay · KBank</strong>
                 <span>ID: {PROMPTPAY_ID}</span>
-                <span>Fixed amount: ฿{grandTotal.toFixed(2)}</span>
+                <span>฿{grandTotal.toFixed(2)}</span>
               </div>
             </div>
           )}
 
-          {/* Server/Checkout error messages */}
           {errorMsg && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderRadius: '6px', padding: '10px', fontSize: '12px', color: '#fca5a5' }}>
-              ⚠️ {errorMsg}
-            </div>
+            <div className="error-banner">⚠ {errorMsg}</div>
           )}
 
-          {/* Action Checkout Submit Button */}
           <button
             className="checkout-submit-btn"
             disabled={cartItemsArray.length === 0 || checkoutLoading}
             onClick={preCheckoutCheck}
           >
             {checkoutLoading ? (
-              <>
-                <div className="spinner"></div>
-                <span>กำลังดำเนินการชำระเงิน...</span>
-              </>
+              <><div className="spinner"></div><span>กำลังประมวลผล...</span></>
             ) : (
-              <>
-                ⚡ ยืนยันชำระเงิน (฿{grandTotal.toFixed(2)})
-              </>
+              `ยืนยันชำระเงิน · ฿${grandTotal.toFixed(2)}`
             )}
           </button>
         </footer>
@@ -660,15 +627,15 @@ export default function PosRegisterPage() {
         <div className="receipt-overlay">
           <div className="receipt-box">
             <div className="receipt-header">
-              <span className="receipt-logo">🏥</span>
+              <div className="receipt-logo">🏥</div>
               <h3 className="receipt-shop-name">PHARMACY POS RDU</h3>
-              <p style={{ fontSize: '10px', color: '#4b5563' }}>กรุงเทพมหานคร ประเทศไทย</p>
+              <p style={{ fontSize: '10px', color: '#6b7280', marginTop: 2 }}>กรุงเทพมหานคร ประเทศไทย</p>
               
-              <div className="receipt-meta" style={{ marginTop: '10px' }}>
+              <div className="receipt-meta" style={{ marginTop: '12px' }}>
                 <div><strong>เลขใบเสร็จ:</strong> {receipt.id}</div>
                 <div><strong>วันที่:</strong> {new Date(receipt.date).toLocaleString('th-TH')}</div>
                 <div><strong>แคชเชียร์:</strong> Front Counter #1</div>
-                <div><strong>ชำระเงินผ่าน:</strong> {receipt.payment_method === 'cash' ? 'เงินสด (Cash)' : receipt.payment_method === 'qr_promptpay' ? 'QR PromptPay' : 'บัตรเครดิต (Credit Card)'}</div>
+                <div><strong>ชำระผ่าน:</strong> {receipt.payment_method === 'cash' ? 'เงินสด' : receipt.payment_method === 'qr_promptpay' ? 'QR PromptPay' : 'บัตรเครดิต'}</div>
               </div>
             </div>
 
@@ -741,74 +708,68 @@ export default function PosRegisterPage() {
         </div>
       )}
 
-      {/* RENDER TRANSACTION CONFIRMATION MODAL */}
+      {/* TRANSACTION CONFIRMATION MODAL */}
       {showConfirmModal && (
-        <div className="receipt-overlay" style={{ zIndex: 999 }}>
-          <div className="receipt-box" style={{ fontFamily: 'var(--font-sans)', padding: '28px', maxWidth: '420px', borderRadius: '16px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '36px' }}>📝</span>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '20px', color: '#1e293b', marginTop: '8px' }}>
-                ยืนยันการทำรายการชำระเงิน
-              </h3>
-              <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>กรุณาตรวจสอบรายละเอียดรายการยาก่อนกดยืนยัน</p>
+        <div className="modal-overlay" style={{ zIndex: 999 }}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <div className="modal-icon">✓</div>
+              <div className="modal-title">ยืนยันการชำระเงิน</div>
+              <div className="modal-subtitle">กรุณาตรวจสอบรายการก่อนยืนยัน</div>
             </div>
 
-            <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc', marginBottom: '16px' }}>
-              {cartItemsArray.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#334155', paddingBottom: '6px', marginBottom: '6px', borderBottom: idx < cartItemsArray.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
-                  <span style={{ fontWeight: '500', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.product.trade_name}
-                  </span>
-                  <span style={{ color: '#64748b' }}>
-                    x{item.quantity} {item.product.unit}
+            <div className="modal-body">
+              {/* Item list */}
+              <div className="confirm-item-list">
+                {cartItemsArray.map((item, idx) => (
+                  <div key={idx} className="confirm-item-row">
+                    <span className="confirm-item-name">{item.product.trade_name}</span>
+                    <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      ×{item.quantity} {item.product.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div className="confirm-summary-rows">
+                <div className="confirm-row">
+                  <span>ช่องทางชำระเงิน</span>
+                  <span style={{ fontWeight: 600, color: 'var(--teal-600)' }}>
+                    {paymentMethod === 'cash' ? '💵 เงินสด' : paymentMethod === 'qr_promptpay' ? '📱 PromptPay QR' : '💳 บัตรเครดิต'}
                   </span>
                 </div>
-              ))}
+                <div className="confirm-row total">
+                  <span>ยอดชำระ</span>
+                  <span>฿{grandTotal.toFixed(2)}</span>
+                </div>
+                {paymentMethod === 'cash' && (
+                  <>
+                    <div className="confirm-row">
+                      <span>รับเงินสด</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>฿{parseFloat(cashReceived).toFixed(2)}</span>
+                    </div>
+                    <div className="confirm-row change">
+                      <span>เงินทอน</span>
+                      <span>฿{cashChange.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
-                <span>ช่องทางชำระเงิน:</span>
-                <span style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                  {paymentMethod === 'cash' ? '💵 เงินสด' : paymentMethod === 'qr_promptpay' ? '📱 PromptPay QR' : '💳 บัตรเครดิต'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', color: '#1e293b', fontWeight: '700' }}>
-                <span>ยอดชำระทั้งสิ้น:</span>
-                <span style={{ fontSize: '17px', color: 'var(--color-primary)' }}>฿{grandTotal.toFixed(2)}</span>
-              </div>
-              
-              {paymentMethod === 'cash' && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569', borderTop: '1px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
-                    <span>รับเงินสดมา:</span>
-                    <span style={{ fontWeight: '600', color: '#1e293b' }}>฿{parseFloat(cashReceived).toFixed(2)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', color: '#0f172a', fontWeight: '800' }}>
-                    <span style={{ color: 'var(--color-primary)' }}>เงินทอน:</span>
-                    <span style={{ fontSize: '18px', color: 'var(--color-primary)' }}>฿{cashChange.toFixed(2)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <button 
-                className="receipt-close-btn" 
-                style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}
+            <div className="modal-footer">
+              <button
+                className="btn btn-outline"
                 onClick={() => setShowConfirmModal(false)}
               >
                 ยกเลิก
               </button>
-              <button 
-                className="checkout-submit-btn" 
-                style={{ height: '44px', borderRadius: '8px', fontSize: '14px' }}
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  handleCheckout();
-                }}
+              <button
+                className="btn btn-primary"
+                onClick={() => { setShowConfirmModal(false); handleCheckout(); }}
               >
-                ยืนยันการทำรายการ
+                ยืนยันชำระเงิน
               </button>
             </div>
           </div>

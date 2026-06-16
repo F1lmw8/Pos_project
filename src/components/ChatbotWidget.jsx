@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import drugData from '../data/drugs.json';
 import { getRduDetails } from '../utils/rduMatcher';
 import { mapThaiToEnglishGeneric, findDrugFromThaiMatch, getBotResponse } from '../utils/safetyEngine';
+import './ChatbotWidget.css';
 
 export default function ChatbotWidget() {
   const renderMessageText = (text) => {
@@ -23,9 +24,9 @@ export default function ChatbotWidget() {
         currentLine = currentLine.trim().substring(1).trim();
       }
       
-      const isBullet = currentLine.trim().startsWith('•') || currentLine.trim().startsWith('-');
+      const isBullet = currentLine.trim().startsWith('•') || currentLine.trim().startsWith('-') || currentLine.trim().startsWith('*');
       if (isBullet) {
-        currentLine = currentLine.trim().replace(/^[•-]\s*/, '');
+        currentLine = currentLine.trim().replace(/^[•*\-]\s*/, '');
       }
       
       // Find bold tags
@@ -119,10 +120,10 @@ export default function ChatbotWidget() {
     };
   }, [pathname]);
 
-  // ลื่นไหลลงด้านล่างเมื่อมีข้อความใหม่
+  // เลื่อนลงด้านล่างสุด (ใช้ auto เพื่อไม่ให้เกิดการกระตุกเวลาสตรีมข้อความรัวๆ)
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
     }
   }, [messages, isTyping]);
 
@@ -150,7 +151,7 @@ export default function ChatbotWidget() {
     setMessages(prev => [
       ...prev,
       {
-        id: `greeting-${Date.now()}`,
+        id: `greeting-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         sender: 'bot',
         text: `💡 **ตรวจพบข้อมูลยา:** ผมเห็นว่าคุณกำลังดูข้อมูลของ **"${drug.t}"** (${drug.a}) อยู่ 💊\nมีเรื่องไหนที่คุณต้องการสอบถามความปลอดภัยเป็นพิเศษไหมครับ? เช่น ทานคู่กับกาแฟได้ไหม หรือสตรีมีครรภ์ทานได้ไหม?`,
         time: timeStr
@@ -180,32 +181,33 @@ export default function ChatbotWidget() {
     }
   }, [drugContext]);
 
-  // ดำเนินการยิงคำถาม
-  const handleSendMessage = (text) => {
+  // ดำเนินการยิงคำถาม (Real-Time AI Agent with Streaming)
+  const handleSendMessage = async (text) => {
     if (!text.trim()) return;
 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMsgId = `user-${Date.now()}`;
+    const userMsgId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const botMsgId = `bot-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     
     // 1. เพิ่มข้อความของผู้ใช้ลงไปใน Chat
-    setMessages(prev => [
-      ...prev,
-      { id: userMsgId, sender: 'user', text: text, time: timeStr }
-    ]);
+    const newUserMsg = { id: userMsgId, sender: 'user', text: text, time: timeStr };
+    
+    setMessages(prev => [...prev, newUserMsg]);
     setInputValue('');
     setIsTyping(true);
+    setHasPulse(false); // เคลียร์แจ้งเตือนเมื่อเปิดคุยแล้ว
 
     // 2. ตรวจจับคีย์เวิร์ดยาในประโยคโดยอัตโนมัติ (Smart Drug Lookup on the fly!)
     const query = text.toLowerCase();
     let foundDrug = null;
     
-    // 2.1 ใช้ Thai Phonetic Mapper ก่อน
+    // ใช้ Thai Phonetic Mapper ก่อน
     const thaiMatches = mapThaiToEnglishGeneric(query);
     if (thaiMatches.length > 0) {
       foundDrug = findDrugFromThaiMatch(thaiMatches);
     }
     
-    // 2.2 ค้นหาด่วนตามแบรนด์หรือสารสำคัญดั้งเดิมถ้าไม่เจอจากข้อแรก
+    // ค้นหาด่วนตามแบรนด์หรือสารสำคัญดั้งเดิมถ้าไม่เจอจากข้อแรก
     if (!foundDrug) {
       const popularNames = ['paracetamol', 'amoxicillin', 'ibuprofen', 'atorvastatin', 'metformin', 'omeprazole', 'clobetasol'];
       for (const name of popularNames) {
@@ -226,31 +228,54 @@ export default function ChatbotWidget() {
       }
     }
 
-    // จำลองอนิเมชันบอตกำลังคิด (Typing Indicator) 850ms
-    setTimeout(() => {
-      let activeContext = drugContext;
-      let prependSystemText = '';
+    let activeContext = drugContext;
+    let prependSystemText = '';
 
-      if (foundDrug && (!drugContext || drugContext.c !== foundDrug.c)) {
-        activeContext = foundDrug;
-        setDrugContext(foundDrug);
-        prependSystemText = `🔄 *สลับไปยังบริบทของยาใหม่ที่คุณเอ่ยถึง: **"${foundDrug.t}"** (${foundDrug.a}) เรียบร้อยครับ*\n\n`;
+    if (foundDrug && (!drugContext || drugContext.c !== foundDrug.c)) {
+      activeContext = foundDrug;
+      setDrugContext(foundDrug);
+    }
+
+    // Map existing messages to AI SDK format
+    // We only send the text that is not system prepended to keep context clean
+    const chatHistory = [...messages, newUserMsg].map(m => ({
+      role: m.sender === 'bot' ? 'assistant' : 'user',
+      content: m.text.replace(/🔄 \*สลับไปยังบริบทของยาใหม่.*\n\n/, '')
+    }));
+
+    // Process fetch asynchronously
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: chatHistory,
+          drugContext: activeContext
+        })
+      });
+
+      if (!res.ok) throw new Error('API Error');
+
+      const data = await res.json();
+      let aiText = data.text || '';
+
+      if (!aiText.trim()) {
+        aiText = '❌ ข้อความว่างเปล่า: อาจเกิดจากการเรียกใช้งาน API ถี่เกินไป (Rate Limit Exceeded) กรุณารอสักครู่แล้วลองพิมพ์ถามใหม่อีกครั้งครับ';
       }
 
-      const botAnswerText = getBotResponse(text, activeContext);
-      
-      setMessages(prev => [
-        ...prev,
-        { 
-          id: `bot-${Date.now()}`, 
-          sender: 'bot', 
-          text: prependSystemText + botAnswerText, 
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        }
-      ]);
       setIsTyping(false);
-      setHasPulse(false); // เคลียร์แจ้งเตือนเมื่อเปิดคุยแล้ว
-    }, 850);
+      setMessages(currentMsgs => [
+        ...currentMsgs,
+        { id: botMsgId, sender: 'bot', text: aiText, time: timeStr }
+      ]);
+    } catch (error) {
+      console.error('API error:', error);
+      setIsTyping(false);
+      setMessages(currentMsgs => [
+        ...currentMsgs,
+        { id: botMsgId, sender: 'bot', text: '❌ ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อกับฐานข้อมูล ไม่สามารถดึงข้อมูลได้ในขณะนี้', time: timeStr }
+      ]);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -265,7 +290,7 @@ export default function ChatbotWidget() {
     setMessages(prev => [
       ...prev,
       {
-        id: `clear-${Date.now()}`,
+        id: `clear-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         sender: 'bot',
         text: '🧹 *ทำความสะอาดบริบทเสร็จสิ้นแล้วครับ!* ผมได้เคลียร์บริบทยาตัวก่อนหน้าลงแล้ว ตอนนี้เราสามารถพูดคุยเรื่องยาหรือความปลอดภัยทั่วไปได้เลยครับ',
         time: timeStr
