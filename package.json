@@ -1,8 +1,20 @@
 {
   "name": "rdu-app",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "homepage": "https://github.com/nongfilmocare/POS_project#readme",
+  "bugs": {
+    "url": "https://github.com/nongfilmocare/POS_project/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nongfilmocare/POS_project.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "eslint.config.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

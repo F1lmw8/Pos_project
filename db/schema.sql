@@ -1,5 +1,6 @@
 -- Drop existing tables if they exist to allow clean seeding
 DROP TABLE IF EXISTS sale_items CASCADE;
+DROP TABLE IF EXISTS inventory_lots CASCADE;
 DROP TABLE IF EXISTS sales CASCADE;
 DROP TABLE IF EXISTS inventory CASCADE;
 DROP TABLE IF EXISTS drugs CASCADE;

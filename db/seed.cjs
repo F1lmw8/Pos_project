@@ -29,7 +29,7 @@ async function runSeed() {
     console.log("Database schema initialized successfully!");
 
     // 2. Read drugs.json from the original project
-    const drugsJsonPath = path.join(__dirname, '..', '..', 'project', 'src', 'data', 'drugs.json');
+    const drugsJsonPath = path.join(__dirname, '..', 'src', 'data', 'drugs.json');
     if (!fs.existsSync(drugsJsonPath)) {
       throw new Error(`Standard drugs.json file not found at: ${drugsJsonPath}`);
     }
