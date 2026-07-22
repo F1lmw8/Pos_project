@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-
 /* ─────────────────────────────────────────────────
    DESIGN TOKENS — Minimal, Modern Pharmacy POS
 ───────────────────────────────────────────────── */
@@ -1901,4 +1899,97 @@ body {
   font-weight: 700;
   color: var(--color-success);
 }
+
+/* ─────────────────────────────────────────────────
+   PRINT MEDIA STYLES (GPP Reports & Official Documents)
+───────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm 12mm;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Sarabun', -apple-system, sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide UI elements on print */
+  .sidebar,
+  .sidebar-brand,
+  .sidebar-nav,
+  .sidebar-footer,
+  .print-hidden,
+  .chatbot-widget,
+  .header-actions,
+  .search-container,
+  .filter-scroll,
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+
+  /* Expand printable container to full width */
+  .dashboard-shell,
+  .dashboard-content,
+  .dashboard-page-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Printable Table Formatting */
+  .table-responsive {
+    overflow: visible !important;
+  }
+
+  .data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 15px !important;
+    font-size: 10pt !important;
+  }
+
+  .data-table th,
+  .data-table td {
+    border: 1px solid #000000 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  .data-table th {
+    font-weight: 700 !important;
+    background-color: #f1f5f9 !important;
+    text-align: center !important;
+  }
+
+  .data-table tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* Official Signature Footer for GPP */
+  .print-only {
+    display: flex !important;
+    justify-content: space-between !important;
+    margin-top: 40px !important;
+    padding-top: 20px !important;
+    font-size: 11pt !important;
+    page-break-inside: avoid !important;
+  }
+}
+
 

@@ -10,6 +10,13 @@ const navItems = [
     links: [
       { href: '/dashboard',            label: 'ภาพรวม & สรุปยอด',      icon: '◎' },
       { href: '/dashboard/sales-logs', label: 'ประวัติธุรกรรม',          icon: '≡' },
+      { href: '/dashboard/gpp-reports', label: 'รายงาน GPP (ข.ย.)',    icon: '📋' },
+    ]
+  },
+  {
+    section: 'ผู้ป่วย & สมาชิก',
+    links: [
+      { href: '/dashboard/customers', label: 'ทะเบียนผู้ป่วย & แพ้ยา', icon: '👤' },
     ]
   },
   {

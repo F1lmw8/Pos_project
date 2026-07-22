@@ -14,7 +14,7 @@ export async function GET(request) {
       // Return top 50 drugs sorted by popularity score first
       result = await pool.query(`
         SELECT d.tmt_id, d.trade_name, d.active_ingredient, d.unit, d.strength, d.dosage_form,
-               d.popularity_score,
+               d.drug_type, d.fda_reg_no, d.popularity_score,
                LEAST(COALESCE(i.stock_quantity, 0), COALESCE(lot_stock.sellable_quantity, 0)) AS stock_quantity,
                i.price
         FROM drugs d
@@ -103,7 +103,7 @@ export async function GET(request) {
           ORDER BY tmt_id, match_rank
         )
         SELECT d.tmt_id, d.trade_name, d.active_ingredient, d.unit, d.strength, d.dosage_form,
-               d.popularity_score,
+               d.drug_type, d.fda_reg_no, d.popularity_score,
                LEAST(COALESCE(i.stock_quantity, 0), COALESCE(lot_stock.sellable_quantity, 0)) AS stock_quantity,
                i.price
         FROM ranked_candidates d

@@ -4,7 +4,7 @@ import pool from '../../../utils/db';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { items, payment_method } = body;
+    const { items, payment_method, customer_id, patient_info } = body;
 
     // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -28,14 +28,12 @@ export async function POST(request) {
       );
     }
 
-    // Connect a client from pool to handle transaction
     const client = await pool.connect();
-    
+
     try {
       // 1. Start Database Transaction
       await client.query('BEGIN');
 
-      // Generate a clean human-readable transaction ID (TX-timestamp-rand)
       const txId = `TX-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
       let calculatedTotal = 0;
       const processedItems = [];
@@ -48,7 +46,6 @@ export async function POST(request) {
           throw new Error(`Invalid item details: ${JSON.stringify(item)}`);
         }
 
-        // Lock row in inventory to prevent concurrency race conditions
         const stockResult = await client.query(
           'SELECT stock_quantity, price FROM inventory WHERE drug_id = $1 FOR UPDATE',
           [drug_id]
@@ -59,8 +56,7 @@ export async function POST(request) {
         }
 
         const currentStock = stockResult.rows[0].stock_quantity;
-        
-        // Stock validation
+
         if (currentStock < quantity) {
           throw new Error(`INSUFFICIENT_STOCK:${drug_id}:${currentStock}:${quantity}`);
         }
@@ -107,13 +103,13 @@ export async function POST(request) {
           [quantity, drug_id]
         );
 
-        // Fetch drug name for transaction logging
         const drugInfo = await client.query(
-          'SELECT trade_name, unit, strength FROM drugs WHERE tmt_id = $1',
+          'SELECT trade_name, active_ingredient, unit, strength, drug_type, fda_reg_no FROM drugs WHERE tmt_id = $1',
           [drug_id]
         );
 
-        const tradeName = drugInfo.rows[0]?.trade_name || 'Unknown Drug';
+        const drugRow = drugInfo.rows[0] || {};
+        const tradeName = drugRow.trade_name || 'Unknown Drug';
         const subtotal = quantity * unit_price;
         calculatedTotal += subtotal;
 
@@ -121,8 +117,11 @@ export async function POST(request) {
           processedItems.push({
             drug_id,
             trade_name: tradeName,
-            unit: drugInfo.rows[0]?.unit || 'tablet',
-            strength: drugInfo.rows[0]?.strength || '',
+            active_ingredient: drugRow.active_ingredient || '',
+            unit: drugRow.unit || 'tablet',
+            strength: drugRow.strength || '',
+            drug_type: drugRow.drug_type || 'general',
+            fda_reg_no: drugRow.fda_reg_no || '',
             quantity: lot.quantity,
             unit_price,
             subtotal: lot.quantity * unit_price,
@@ -135,32 +134,53 @@ export async function POST(request) {
       const vat = Number((calculatedTotal * 0.07).toFixed(2));
       const totalDue = Number((calculatedTotal + vat).toFixed(2));
 
-      // 3. Save Sales main record
+      // 3. Save Sales main record with customer_id
       await client.query(
-        `INSERT INTO sales (id, total_amount, payment_method)
-         VALUES ($1, $2, $3)`,
-        [txId, totalDue, payment_method]
+        `INSERT INTO sales (id, customer_id, total_amount, payment_method)
+         VALUES ($1, $2, $3, $4)`,
+        [txId, customer_id || null, totalDue, payment_method]
       );
 
-      // 4. Save Sales line-items & increment popularity score
+      // 4. Save Sales line-items & controlled_drug_logs
       for (const item of processedItems) {
-        await client.query(
+        const itemResult = await client.query(
           `INSERT INTO sale_items (sale_id, drug_id, quantity, unit_price, subtotal, lot_id)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id`,
           [txId, item.drug_id, item.quantity, item.unit_price, item.subtotal, item.lot_id]
         );
 
-        // Dynamic Popularity: Boost score by the quantity sold
+        const saleItemId = itemResult.rows[0].id;
+
+        // Dynamic Popularity
         await client.query(
           `UPDATE drugs SET popularity_score = popularity_score + $1 WHERE tmt_id = $2`,
           [item.quantity, item.drug_id]
         );
+
+        // If drug is controlled or dangerous, log into controlled_drug_logs (GPP compliance ข.ย. 10 / ข.ย. 11)
+        if (['special_controlled', 'dangerous'].includes(item.drug_type) || patient_info?.patient_name) {
+          await client.query(
+            `INSERT INTO controlled_drug_logs
+             (sale_item_id, drug_id, customer_id, patient_name, patient_id_card, prescriber_name, pharmacist_name, purpose)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              saleItemId,
+              item.drug_id,
+              customer_id || null,
+              patient_info?.patient_name || 'ลูกค้าทั่วไป',
+              patient_info?.patient_id_card || '',
+              patient_info?.prescriber_name || 'ภก. ผู้สั่งใช้ยา',
+              patient_info?.pharmacist_name || 'ภก. สมชาย มีสุข (ภ. 12345)',
+              patient_info?.purpose || 'รักษาอาการป่วยเบื้องต้น'
+            ]
+          );
+        }
       }
 
       // 5. Commit Transaction
       await client.query('COMMIT');
 
-      // Return successful receipt details
       return NextResponse.json({
         success: true,
         transaction: {
@@ -169,20 +189,16 @@ export async function POST(request) {
           vat,
           total: totalDue,
           payment_method,
+          customer_id: customer_id || null,
           date: new Date().toISOString(),
           items: processedItems
         }
       });
-
     } catch (txError) {
-      // Rollback transaction if any error occurs
       await client.query('ROLLBACK');
-      
-      // Parse insufficient stock message
+
       if (txError.message.startsWith('INSUFFICIENT_STOCK:')) {
         const [, drugId, current, requested] = txError.message.split(':');
-        
-        // Fetch drug name to return a clean, friendly error
         const drugResult = await client.query('SELECT trade_name FROM drugs WHERE tmt_id = $1', [drugId]);
         const tradeName = drugResult.rows[0]?.trade_name || 'Unknown Drug';
 
@@ -207,7 +223,6 @@ export async function POST(request) {
     } finally {
       client.release();
     }
-
   } catch (error) {
     console.error('Error recording sales transaction:', error);
     return NextResponse.json(

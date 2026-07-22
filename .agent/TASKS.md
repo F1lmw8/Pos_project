@@ -1,25 +1,25 @@
 # Agent Tasks
 
-Last updated: 2026-06-23
+Last updated: 2026-07-22
 
 ## Active Task
 
-- None currently assigned after normalizing the shared agent context.
+- Completed GPP Pharmacy POS feature implementation.
 
 ## Requested By User
 
-- Create a shared context system so Codex, Gemini, Antigravity, OOS, and other models/apps can understand the current project state when the user switches between them.
-- Review whether OOS/Antigravity changed the context correctly.
-- Fix the context if it contained unverified assumptions.
+- Implement essential GPP (Good Pharmacy Practice) features based on FDA standards & CuraLink pharmacy reference.
 
 ## Completed
 
-- Created `AGENTS.md` as the root instruction file for coding agents.
-- Created `.agent/STATUS.md` for current state and recent work.
-- Created `.agent/TASKS.md` for active tasks, completed work, blockers, and handoff notes.
-- Read the OOS/Antigravity rewrite of `AGENTS.md`.
-- Normalized `AGENTS.md` to match verified repo facts.
-- Updated this file and `.agent/STATUS.md` so the handoff context reflects the latest work.
+- Created GPP schema additions in `db/schema.sql` (`drug_type`, `customers`, `controlled_drug_logs`).
+- Seeded database (`db/seed.cjs`) with GPP drug classifications, sample customers with allergy data, and FEFO lots.
+- Built Customer Profile API (`src/app/api/customers/route.js`).
+- Built GPP Reports API (`src/app/api/dashboard/gpp-reports/route.js`).
+- Created `ControlledDrugModal.jsx` for GPP Force Data Entry on controlled drugs.
+- Created `ReceiptModal.jsx` for printable receipts & tax invoices.
+- Created GPP Reports Dashboard page (`/dashboard/gpp-reports`).
+- Integrated Customer Selection & Drug Allergy Check in `src/app/page.jsx`.
 
 ## Blockers
 
@@ -27,47 +27,24 @@ Last updated: 2026-06-23
 
 ## Handoff Notes
 
-### 2026-06-23 - Codex
+### 2026-07-22 - Antigravity
 
 Goal:
-- Make cross-agent handoff context reliable after OOS/Antigravity expanded `AGENTS.md`.
+- Add core GPP compliance features (Force Data Entry, Drug Allergy Warning, ข.ย. 9,10,11 Reports, Tax Invoice/Receipt).
 
 Changed:
-- Rewrote `AGENTS.md` to keep useful structure while removing unverified claims about missing scripts, future tools, missing API routes, Docker, tests, and style systems.
-- Updated `.agent/STATUS.md` with the current verified state.
-- Updated `.agent/TASKS.md` with completed work and handoff notes.
+- `db/schema.sql`, `db/seed.cjs`
+- `src/app/api/products/route.js`, `src/app/api/sales/route.js`
+- `src/app/api/customers/route.js` [NEW]
+- `src/app/api/dashboard/gpp-reports/route.js` [NEW]
+- `src/app/dashboard/gpp-reports/page.jsx` [NEW]
+- `src/components/ControlledDrugModal.jsx` [NEW]
+- `src/components/ReceiptModal.jsx` [NEW]
+- `src/components/DashboardLayout.jsx`, `src/app/page.jsx`
 
 Verified:
-- Ran `git status --short`.
-- Read `package.json`.
-- Listed actual routes under `src/app`.
+- `node db/seed.cjs` (35,410 records seeded)
+- `npm run build` (compiled cleanly)
 
 Next:
-- For future feature work, start by reading `AGENTS.md`, `.agent/STATUS.md`, and `.agent/TASKS.md`.
-
-Risks:
-- Existing modified files in `db/` and `package*.json` predate this context work and were not inspected or changed during normalization.
-
-## Handoff Notes Template
-
-Use this section format when leaving work for the next agent:
-
-```md
-### YYYY-MM-DD - Agent Name
-
-Goal:
-- What the user asked for.
-
-Changed:
-- Files changed and why.
-
-Verified:
-- Commands run and results.
-
-Next:
-- What should happen next.
-
-Risks:
-- Anything uncertain, broken, or intentionally skipped.
-```
-
+- Connect printer hardware or test print modals in browser.

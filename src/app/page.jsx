@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { createPromptPayQrService, isQrPaymentMethod } from '../utils/paymentQr';
+import ReceiptModal from '../components/ReceiptModal';
+import ControlledDrugModal from '../components/ControlledDrugModal';
 
 const PROMPTPAY_ID = '0989342456';
 
@@ -15,7 +17,27 @@ export default function PosRegisterPage() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  
+
+  // Customer & Patient Profile State
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [allergyAlert, setAllergyAlert] = useState(null);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+
+  // Registration Form State
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustIdCard, setNewCustIdCard] = useState('');
+  const [newCustConditions, setNewCustConditions] = useState('');
+  const [newCustAllergies, setNewCustAllergies] = useState('');
+  const [newCustCurrentMeds, setNewCustCurrentMeds] = useState('');
+
+  // Controlled Drug Modal State (GPP Compliance)
+  const [showControlledModal, setShowControlledModal] = useState(false);
+  const [controlledItemsToLog, setControlledItemsToLog] = useState([]);
+  const [patientInfo, setPatientInfo] = useState(null);
+
   // Receipt Modal State
   const [receipt, setReceipt] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
@@ -23,7 +45,7 @@ export default function PosRegisterPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [promptPayQr, setPromptPayQr] = useState('');
 
-  // 1. Fetch products from PostgreSQL based on search query
+  // Fetch products from PostgreSQL based on search query
   const fetchProducts = async (query = '') => {
     setLoading(true);
     setErrorMsg('');
@@ -43,12 +65,67 @@ export default function PosRegisterPage() {
     }
   };
 
-  // Fetch initial products on load
+  // Fetch customers from PostgreSQL based on search query (name/phone)
+  const fetchCustomers = async (query = '') => {
+    try {
+      const res = await fetch(`/api/customers?q=${encodeURIComponent(query)}`);
+      const json = await res.json();
+      if (json.success) {
+        setCustomers(json.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load customers:', err);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCustomers();
   }, []);
 
-  // Handle Search Input with a minor debounce or direct trigger
+  // Handle Customer Search
+  const handleCustomerSearchChange = (e) => {
+    const val = e.target.value;
+    setCustomerSearch(val);
+    fetchCustomers(val);
+  };
+
+  // Handle Register New Customer
+  const handleCreateCustomer = async (e) => {
+    e.preventDefault();
+    if (!newCustName.trim()) return;
+
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCustName.trim(),
+          phone: newCustPhone.trim(),
+          id_card: newCustIdCard.trim(),
+          medical_conditions: newCustConditions.trim(),
+          allergies: newCustAllergies.trim(),
+          current_medications: newCustCurrentMeds.trim()
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCustomers((prev) => [json.data, ...prev]);
+        setSelectedCustomer(json.data);
+        setShowAddCustomerModal(false);
+        setNewCustName('');
+        setNewCustPhone('');
+        setNewCustIdCard('');
+        setNewCustConditions('');
+        setNewCustAllergies('');
+        setNewCustCurrentMeds('');
+      }
+    } catch (err) {
+      console.error('Failed to create customer:', err);
+    }
+  };
+
+  // Handle Search Input
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
@@ -60,40 +137,82 @@ export default function PosRegisterPage() {
     fetchProducts('');
   };
 
-  // 2. Filter products based on selected UI Category
+  // Filter products based on selected UI Category
   const filteredProducts = useMemo(() => {
     if (selectedFilter === 'ALL') return products;
 
-    return products.filter(p => {
+    return products.filter((p) => {
       if (!p.dosage_form) return false;
       const form = p.dosage_form.toLowerCase();
-      
+
       const isTablet = form.includes('tablet') || form.includes('pill');
       const isCapsule = form.includes('capsule') || form.includes('cap');
-      const isCream = form.includes('cream') || form.includes('ointment') || form.includes('gel') || form.includes('lotion');
-      const isInjection = form.includes('inject') || form.includes('infusion') || form.includes('vial') || form.includes('ampoule');
-      const isLiquid = (form.includes('syrup') || form.includes('suspension') || form.includes('solution') || form.includes('liquid') || form.includes('drop')) && !isInjection;
+      const isCream =
+        form.includes('cream') ||
+        form.includes('ointment') ||
+        form.includes('gel') ||
+        form.includes('lotion');
+      const isInjection =
+        form.includes('inject') ||
+        form.includes('infusion') ||
+        form.includes('vial') ||
+        form.includes('ampoule');
+      const isLiquid =
+        (form.includes('syrup') ||
+          form.includes('suspension') ||
+          form.includes('solution') ||
+          form.includes('liquid') ||
+          form.includes('drop')) &&
+        !isInjection;
 
       if (selectedFilter === 'tablet') return isTablet;
       if (selectedFilter === 'capsule') return isCapsule;
       if (selectedFilter === 'cream') return isCream;
       if (selectedFilter === 'injection') return isInjection;
       if (selectedFilter === 'liquid') return isLiquid;
-      if (selectedFilter === 'others') return !isTablet && !isCapsule && !isCream && !isInjection && !isLiquid;
+      if (selectedFilter === 'others')
+        return !isTablet && !isCapsule && !isCream && !isInjection && !isLiquid;
       return true;
     });
   }, [products, selectedFilter]);
 
-  // 3. Cart Operations
+  // Drug Allergy Check Function
+  const checkDrugAllergy = (product, customer) => {
+    if (!customer || !customer.allergies || customer.allergies.length === 0) return null;
+
+    const ingLower = (product.active_ingredient || '').toLowerCase();
+    const tradeLower = (product.trade_name || '').toLowerCase();
+
+    for (const allergy of customer.allergies) {
+      const allergyLower = allergy.toLowerCase().trim();
+      if (allergyLower && (ingLower.includes(allergyLower) || tradeLower.includes(allergyLower))) {
+        return allergy;
+      }
+    }
+    return null;
+  };
+
+  // Cart Operations
   const addToCart = (product) => {
     const tmtId = product.tmt_id;
-    if (product.stock_quantity <= 0) return; // Out of stock check
+    if (product.stock_quantity <= 0) return;
 
-    setCart(prevCart => {
+    if (selectedCustomer) {
+      const matchedAllergy = checkDrugAllergy(product, selectedCustomer);
+      if (matchedAllergy) {
+        setAllergyAlert({
+          drug: product.trade_name,
+          ingredient: product.active_ingredient,
+          allergy: matchedAllergy,
+          customerName: selectedCustomer.name
+        });
+      }
+    }
+
+    setCart((prevCart) => {
       const existing = prevCart[tmtId];
       const newQty = existing ? existing.quantity + 1 : 1;
-      
-      // Stock limit validation
+
       if (newQty > product.stock_quantity) return prevCart;
 
       return {
@@ -107,21 +226,19 @@ export default function PosRegisterPage() {
   };
 
   const updateQuantity = (tmtId, change) => {
-    setCart(prevCart => {
+    setCart((prevCart) => {
       const existing = prevCart[tmtId];
       if (!existing) return prevCart;
 
       const currentQty = parseInt(existing.quantity, 10) || 0;
       const newQty = currentQty + change;
-      
+
       if (newQty <= 0) {
-        // Remove item if quantity becomes 0
         const newCart = { ...prevCart };
         delete newCart[tmtId];
         return newCart;
       }
 
-      // Check against maximum available stock
       if (newQty > existing.product.stock_quantity) {
         return prevCart;
       }
@@ -137,9 +254,8 @@ export default function PosRegisterPage() {
   };
 
   const handleQuantityChange = (tmtId, valueStr, maxStock) => {
-    // Allow empty string temporarily so cashiers can backspace to type new numbers
     if (valueStr === '') {
-      setCart(prevCart => {
+      setCart((prevCart) => {
         const existing = prevCart[tmtId];
         if (!existing) return prevCart;
         return {
@@ -155,9 +271,9 @@ export default function PosRegisterPage() {
 
     let value = parseInt(valueStr, 10);
     if (isNaN(value) || value < 0) value = 0;
-    if (value > maxStock) value = maxStock; // Validate against physical inventory
+    if (value > maxStock) value = maxStock;
 
-    setCart(prevCart => {
+    setCart((prevCart) => {
       const existing = prevCart[tmtId];
       if (!existing) return prevCart;
       return {
@@ -171,11 +287,10 @@ export default function PosRegisterPage() {
   };
 
   const handleQuantityBlur = (tmtId) => {
-    setCart(prevCart => {
+    setCart((prevCart) => {
       const existing = prevCart[tmtId];
       if (!existing) return prevCart;
 
-      // Clean up item from cart if cashier leaves it blank or at zero
       if (existing.quantity === '' || existing.quantity <= 0) {
         const newCart = { ...prevCart };
         delete newCart[tmtId];
@@ -186,7 +301,7 @@ export default function PosRegisterPage() {
   };
 
   const removeFromCart = (tmtId) => {
-    setCart(prevCart => {
+    setCart((prevCart) => {
       const newCart = { ...prevCart };
       delete newCart[tmtId];
       return newCart;
@@ -197,13 +312,13 @@ export default function PosRegisterPage() {
     setCart({});
   };
 
-  // 4. Calculations
+  // Calculations
   const cartItemsArray = useMemo(() => Object.values(cart), [cart]);
 
   const subtotal = useMemo(() => {
     return cartItemsArray.reduce((acc, item) => {
       const qty = parseInt(item.quantity, 10) || 0;
-      return acc + (item.product.price * qty);
+      return acc + item.product.price * qty;
     }, 0);
   }, [cartItemsArray]);
 
@@ -247,12 +362,23 @@ export default function PosRegisterPage() {
     };
   }, [paymentMethod, grandTotal, promptPayQrService]);
 
-  // 5. Checkout Handler
-  const handleCheckout = async () => {
+  // Check if cart contains GPP controlled items
+  const controlledItemsInCart = useMemo(() => {
+    return cartItemsArray
+      .filter((item) => ['special_controlled', 'dangerous'].includes(item.product.drug_type))
+      .map((item) => ({
+        trade_name: item.product.trade_name,
+        drug_type: item.product.drug_type,
+        quantity: item.quantity,
+        unit: item.product.unit
+      }));
+  }, [cartItemsArray]);
+
+  // Pre-checkout check
+  const preCheckoutCheck = () => {
     if (cartItemsArray.length === 0) return;
     setErrorMsg('');
 
-    // Additional validation for Cash payment
     if (paymentMethod === 'cash') {
       const received = parseFloat(cashReceived);
       if (isNaN(received) || received < grandTotal) {
@@ -261,10 +387,23 @@ export default function PosRegisterPage() {
       }
     }
 
+    if (controlledItemsInCart.length > 0 && !patientInfo) {
+      setControlledItemsToLog(controlledItemsInCart);
+      setShowControlledModal(true);
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  // Execute Final Checkout API
+  const handleCheckout = async (pInfo = patientInfo) => {
+    if (cartItemsArray.length === 0) return;
+    setErrorMsg('');
+
     setCheckoutLoading(true);
 
-    // Format items payload for API
-    const itemsPayload = cartItemsArray.map(item => ({
+    const itemsPayload = cartItemsArray.map((item) => ({
       drug_id: item.product.tmt_id,
       quantity: item.quantity,
       unit_price: item.product.price
@@ -276,28 +415,28 @@ export default function PosRegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: itemsPayload,
-          payment_method: paymentMethod
+          payment_method: paymentMethod,
+          customer_id: selectedCustomer?.id || null,
+          patient_info: pInfo
         })
       });
 
       const result = await response.json();
 
       if (result.success) {
-        // Store receipt details to show dynamic print modal
         setReceipt({
           ...result.transaction,
+          patient_name: pInfo?.patient_name || selectedCustomer?.name || '',
           cashReceived: paymentMethod === 'cash' ? parseFloat(cashReceived) : result.transaction.total,
           change: paymentMethod === 'cash' ? cashChange : 0,
           subtotal: result.transaction.subtotal ?? subtotal,
-          vat: result.transaction.vat ?? vat,
-          promptPayQr: isQrPaymentMethod(paymentMethod) ? promptPayQr : ''
+          vat: result.transaction.vat ?? vat
         });
-        
-        // Success: Reset checkout parameters
+
         setCart({});
         setCashReceived('');
-        
-        // Re-fetch database catalogue to sync stock levels
+        setPatientInfo(null);
+
         fetchProducts(searchQuery);
       } else {
         setErrorMsg(result.error || 'การชำระเงินขัดข้อง กรุณาลองใหม่อีกครั้ง');
@@ -308,22 +447,6 @@ export default function PosRegisterPage() {
     } finally {
       setCheckoutLoading(false);
     }
-  };
-
-  const preCheckoutCheck = () => {
-    if (cartItemsArray.length === 0) return;
-    setErrorMsg('');
-
-    // Additional validation for Cash payment
-    if (paymentMethod === 'cash') {
-      const received = parseFloat(cashReceived);
-      if (isNaN(received) || received < grandTotal) {
-        setErrorMsg('กรุณากรอกจำนวนเงินสดที่ได้รับให้ถูกต้องและเพียงพอ');
-        return;
-      }
-    }
-
-    setShowConfirmModal(true);
   };
 
   return (
@@ -337,11 +460,15 @@ export default function PosRegisterPage() {
             <span className="brand-badge">Front Counter</span>
           </h1>
           <div className="header-status">
-            <Link href="/dashboard" className="btn btn-outline btn-sm">
-              ◎ รายงาน &amp; คลัง
+            <Link href="/dashboard/customers" className="btn btn-outline btn-sm">
+              👤 ทะเบียนผู้ป่วย
             </Link>
-            <span className="status-dot"></span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ออนไลน์</span>
+            <Link href="/dashboard/gpp-reports" className="btn btn-outline btn-sm">
+              📋 รายงาน GPP
+            </Link>
+            <Link href="/dashboard" className="btn btn-primary btn-sm">
+              ◎ แดชบอร์ด
+            </Link>
           </div>
         </header>
 
@@ -372,7 +499,7 @@ export default function PosRegisterPage() {
             { id: 'cream', name: 'ยาทาภายนอก' },
             { id: 'injection', name: 'ยาฉีด' },
             { id: 'others', name: 'อื่นๆ' }
-          ].map(filter => (
+          ].map((filter) => (
             <button
               key={filter.id}
               className={`filter-badge ${selectedFilter === filter.id ? 'active' : ''}`}
@@ -391,16 +518,35 @@ export default function PosRegisterPage() {
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="product-grid">
-            {filteredProducts.map(product => {
+            {filteredProducts.map((product) => {
               const inCart = cart[product.tmt_id];
               const isOutOfStock = product.stock_quantity <= 0;
               const isLowStock = product.stock_quantity > 0 && product.stock_quantity < 20;
 
               return (
-                <div key={product.tmt_id} className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`}>
+                <div
+                  key={product.tmt_id}
+                  className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`}
+                >
                   <div className="card-header">
-                    <span className="tmt-id-label">TMT-{product.tmt_id}</span>
-                    <span className={`stock-badge ${isOutOfStock ? 'no-stock' : isLowStock ? 'low-stock' : 'in-stock'}`}>
+                    <span className="tmt-id-label">
+                      {product.drug_type === 'special_controlled' ? (
+                        <span style={{ backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>
+                          🔴 ควบคุมพิเศษ
+                        </span>
+                      ) : product.drug_type === 'dangerous' ? (
+                        <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>
+                          ⚠️ ยาอันตราย
+                        </span>
+                      ) : (
+                        `TMT-${product.tmt_id}`
+                      )}
+                    </span>
+                    <span
+                      className={`stock-badge ${
+                        isOutOfStock ? 'no-stock' : isLowStock ? 'low-stock' : 'in-stock'
+                      }`}
+                    >
                       {isOutOfStock ? 'หมดสต็อก' : `${product.stock_quantity} ${product.unit}`}
                     </span>
                   </div>
@@ -425,23 +571,43 @@ export default function PosRegisterPage() {
                     </div>
 
                     {isOutOfStock ? (
-                      <button className="add-btn" disabled>หมดสต็อก</button>
+                      <button className="add-btn" disabled>
+                        หมดสต็อก
+                      </button>
                     ) : inCart ? (
                       <div className="qty-counter-control">
-                        <button className="qty-btn" onClick={() => updateQuantity(product.tmt_id, -1)}>−</button>
+                        <button
+                          className="qty-btn"
+                          onClick={() => updateQuantity(product.tmt_id, -1)}
+                        >
+                          −
+                        </button>
                         <input
                           type="number"
                           className="qty-number-input"
                           value={inCart.quantity}
-                          onChange={(e) => handleQuantityChange(product.tmt_id, e.target.value, product.stock_quantity)}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              product.tmt_id,
+                              e.target.value,
+                              product.stock_quantity
+                            )
+                          }
                           onBlur={() => handleQuantityBlur(product.tmt_id)}
                           min="0"
                           max={product.stock_quantity}
                         />
-                        <button className="qty-btn" onClick={() => updateQuantity(product.tmt_id, 1)}>+</button>
+                        <button
+                          className="qty-btn"
+                          onClick={() => updateQuantity(product.tmt_id, 1)}
+                        >
+                          +
+                        </button>
                       </div>
                     ) : (
-                      <button className="add-btn" onClick={() => addToCart(product)}>+ เพิ่ม</button>
+                      <button className="add-btn" onClick={() => addToCart(product)}>
+                        + เพิ่ม
+                      </button>
                     )}
                   </div>
                 </div>
@@ -452,7 +618,9 @@ export default function PosRegisterPage() {
           <div className="empty-state" style={{ flex: 1 }}>
             <div className="empty-icon">⌕</div>
             <div>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>ไม่พบรายการยา</div>
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                ไม่พบรายการยา
+              </div>
               <div>ลองเปลี่ยนคำค้นหา หรือสะกดคำค้นใหม่อีกครั้ง</div>
             </div>
           </div>
@@ -461,10 +629,128 @@ export default function PosRegisterPage() {
 
       {/* RIGHT SECTION: Cart Register Billing */}
       <section className="cart-section">
+        {/* Customer Selection & Patient Profile Header */}
+        <div style={{ padding: '12px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-muted)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              👤 ผู้ป่วย / สมาชิก:
+            </span>
+            <button
+              onClick={() => setShowAddCustomerModal(true)}
+              style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal-600)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              + ลงทะเบียนผู้ป่วยใหม่
+            </button>
+          </div>
+
+          {/* Quick Search & Select Customer */}
+          <div style={{ marginBottom: '6px' }}>
+            <input
+              type="text"
+              placeholder="🔍 ค้นหาชื่อ หรือ เบอร์โทร (เช่น ลุงเค)..."
+              value={customerSearch}
+              onChange={handleCustomerSearchChange}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                fontSize: '12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                backgroundColor: '#ffffff',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          <select
+            value={selectedCustomer?.id || ''}
+            onChange={(e) => {
+              const cust = customers.find((c) => c.id === parseInt(e.target.value, 10));
+              setSelectedCustomer(cust || null);
+            }}
+            style={{
+              width: '100%',
+              padding: '6px 10px',
+              fontSize: '12px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              backgroundColor: '#ffffff',
+              outline: 'none',
+              fontWeight: 500
+            }}
+          >
+            <option value="">-- ไม่ระบุ (ลูกค้าทั่วไป) --</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                👤 {c.name} {c.phone ? `(${c.phone})` : ''} {c.allergies?.length > 0 ? '⚠️ แพ้ยา' : ''}
+              </option>
+            ))}
+          </select>
+
+          {/* Detailed Selected Patient Profile Card */}
+          {selectedCustomer && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                backgroundColor: '#ffffff',
+                border: '1.5px solid var(--teal-600)',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', paddingBottom: '4px', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    👤 {selectedCustomer.name}
+                  </div>
+                  {selectedCustomer.phone && (
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      📞 เบอร์: {selectedCustomer.phone}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedCustomer(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px' }}
+                  title="ยกเลิกการเลือก"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Patient Health Details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11px' }}>
+                {selectedCustomer.medical_conditions && (
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>🏥 โรคประจำตัว:</strong> {selectedCustomer.medical_conditions}
+                  </div>
+                )}
+
+                {selectedCustomer.current_medications && (
+                  <div style={{ color: 'var(--blue-600)' }}>
+                    <strong>💊 ยาที่ใช้ปัจจุบัน:</strong> {selectedCustomer.current_medications}
+                  </div>
+                )}
+
+                {selectedCustomer.allergies?.length > 0 ? (
+                  <div style={{ marginTop: '4px', padding: '4px 8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', color: '#dc2626', fontWeight: 700 }}>
+                    ⚠️ ประวัติแพ้ยา: {selectedCustomer.allergies.join(', ')}
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '10px' }}>ไม่มีประวัติแพ้ยาที่บันทึกไว้</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <header className="cart-header">
           <h2 className="cart-title">
             รายการชำระเงิน
-            {cartItemsArray.length > 0 && <span className="cart-count-badge">{cartItemsArray.length}</span>}
+            {cartItemsArray.length > 0 && (
+              <span className="cart-count-badge">{cartItemsArray.length}</span>
+            )}
           </h2>
           {cartItemsArray.length > 0 && (
             <button className="clear-cart-btn" onClick={clearCart}>
@@ -476,7 +762,7 @@ export default function PosRegisterPage() {
         {/* Scrollable Shopping Cart Items */}
         <div className="cart-items-container">
           {cartItemsArray.length > 0 ? (
-            cartItemsArray.map(item => (
+            cartItemsArray.map((item) => (
               <div key={item.product.tmt_id} className="cart-item-row">
                 <div className="item-details">
                   <span className="item-name" title={item.product.trade_name}>
@@ -488,25 +774,44 @@ export default function PosRegisterPage() {
                 </div>
 
                 <div className="qty-counter-control">
-                  <button className="qty-btn" onClick={() => updateQuantity(item.product.tmt_id, -1)}>−</button>
+                  <button
+                    className="qty-btn"
+                    onClick={() => updateQuantity(item.product.tmt_id, -1)}
+                  >
+                    −
+                  </button>
                   <input
                     type="number"
                     className="qty-number-input"
                     value={item.quantity}
-                    onChange={(e) => handleQuantityChange(item.product.tmt_id, e.target.value, item.product.stock_quantity)}
+                    onChange={(e) =>
+                      handleQuantityChange(
+                        item.product.tmt_id,
+                        e.target.value,
+                        item.product.stock_quantity
+                      )
+                    }
                     onBlur={() => handleQuantityBlur(item.product.tmt_id)}
                     min="0"
                     max={item.product.stock_quantity}
                   />
-                  <button className="qty-btn" onClick={() => updateQuantity(item.product.tmt_id, 1)}>+</button>
+                  <button
+                    className="qty-btn"
+                    onClick={() => updateQuantity(item.product.tmt_id, 1)}
+                  >
+                    +
+                  </button>
                 </div>
 
                 <span className="item-total-price">
                   ฿{(item.product.price * item.quantity).toFixed(2)}
                 </span>
 
-                <button className="remove-item-btn" onClick={() => removeFromCart(item.product.tmt_id)}
-                  title="ลบรายการ">
+                <button
+                  className="remove-item-btn"
+                  onClick={() => removeFromCart(item.product.tmt_id)}
+                  title="ลบรายการ"
+                >
                   ✕
                 </button>
               </div>
@@ -515,7 +820,9 @@ export default function PosRegisterPage() {
             <div className="empty-cart-state">
               <div className="empty-cart-icon">🛒</div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>ยังไม่มีรายการ</div>
+                <div style={{ fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                  ยังไม่มีรายการ
+                </div>
                 <div style={{ fontSize: '12px' }}>เลือกยาด้านซ้ายเพื่อเพิ่มรายการ</div>
               </div>
             </div>
@@ -543,21 +850,32 @@ export default function PosRegisterPage() {
           <div className="payment-grid">
             <button
               className={`payment-btn ${paymentMethod === 'cash' ? 'active' : ''}`}
-              onClick={() => { setPaymentMethod('cash'); setErrorMsg(''); }}
+              onClick={() => {
+                setPaymentMethod('cash');
+                setErrorMsg('');
+              }}
             >
               <span className="payment-btn-icon">💵</span>
               เงินสด
             </button>
             <button
               className={`payment-btn ${paymentMethod === 'qr_promptpay' ? 'active' : ''}`}
-              onClick={() => { setPaymentMethod('qr_promptpay'); setCashReceived(''); setErrorMsg(''); }}
+              onClick={() => {
+                setPaymentMethod('qr_promptpay');
+                setCashReceived('');
+                setErrorMsg('');
+              }}
             >
               <span className="payment-btn-icon">📱</span>
               PromptPay
             </button>
             <button
               className={`payment-btn ${paymentMethod === 'credit_card' ? 'active' : ''}`}
-              onClick={() => { setPaymentMethod('credit_card'); setCashReceived(''); setErrorMsg(''); }}
+              onClick={() => {
+                setPaymentMethod('credit_card');
+                setCashReceived('');
+                setErrorMsg('');
+              }}
             >
               <span className="payment-btn-icon">💳</span>
               บัตรเครดิต
@@ -604,9 +922,7 @@ export default function PosRegisterPage() {
             </div>
           )}
 
-          {errorMsg && (
-            <div className="error-banner">⚠ {errorMsg}</div>
-          )}
+          {errorMsg && <div className="error-banner">⚠ {errorMsg}</div>}
 
           <button
             className="checkout-submit-btn"
@@ -614,7 +930,10 @@ export default function PosRegisterPage() {
             onClick={preCheckoutCheck}
           >
             {checkoutLoading ? (
-              <><div className="spinner"></div><span>กำลังประมวลผล...</span></>
+              <>
+                <div className="spinner"></div>
+                <span>กำลังประมวลผล...</span>
+              </>
             ) : (
               `ยืนยันชำระเงิน · ฿${grandTotal.toFixed(2)}`
             )}
@@ -622,90 +941,174 @@ export default function PosRegisterPage() {
         </footer>
       </section>
 
-      {/* RENDER DYNAMIC RECEIPT PRINT MODAL */}
-      {receipt && (
-        <div className="receipt-overlay">
-          <div className="receipt-box">
-            <div className="receipt-header">
-              <div className="receipt-logo">🏥</div>
-              <h3 className="receipt-shop-name">PHARMACY POS RDU</h3>
-              <p style={{ fontSize: '10px', color: '#6b7280', marginTop: 2 }}>กรุงเทพมหานคร ประเทศไทย</p>
-              
-              <div className="receipt-meta" style={{ marginTop: '12px' }}>
-                <div><strong>เลขใบเสร็จ:</strong> {receipt.id}</div>
-                <div><strong>วันที่:</strong> {new Date(receipt.date).toLocaleString('th-TH')}</div>
-                <div><strong>แคชเชียร์:</strong> Front Counter #1</div>
-                <div><strong>ชำระผ่าน:</strong> {receipt.payment_method === 'cash' ? 'เงินสด' : receipt.payment_method === 'qr_promptpay' ? 'QR PromptPay' : 'บัตรเครดิต'}</div>
+      {/* DRUG ALLERGY WARNING POPUP MODAL */}
+      {allergyAlert && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-box" style={{ maxWidth: '420px', border: '2px solid #ef4444' }}>
+            <div className="modal-header" style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+              <div className="modal-icon" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>⚠️</div>
+              <div className="modal-title" style={{ color: '#991b1b' }}>แจ้งเตือนผู้ป่วยมีประวัติแพ้ยา!</div>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                ผู้ป่วย: <strong>{allergyAlert.customerName}</strong>
+              </div>
+              <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '12px', fontWeight: 600 }}>
+                ⚠️ ยาที่เลือก: &quot;{allergyAlert.drug}&quot; ({allergyAlert.ingredient}) ตรงกับประวัติยาที่แพ้: &quot;{allergyAlert.allergy}&quot;
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                กรุณาสอบถามเภสัชกร หรือเปลี่ยนรายการยาเป็นกลุ่มอื่นเพื่อความปลอดภัยของผู้ป่วย
               </div>
             </div>
-
-            <div className="receipt-table">
-              <div className="receipt-row" style={{ fontWeight: 'bold', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '4px' }}>
-                <span>รายการยา</span>
-                <span style={{ width: '60px', textAlign: 'center' }}>จำนวน</span>
-                <span style={{ width: '80px', textAlign: 'right' }}>รวม (฿)</span>
-              </div>
-              
-              {receipt.items.map((item, idx) => (
-                <div key={idx} className="receipt-row item-line">
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: 'bold' }}>{item.trade_name}</span>
-                    <span style={{ fontSize: '10px', color: '#6b7280' }}>
-                      TMT-{item.drug_id} {item.strength} {item.lot_number ? `Lot ${item.lot_number}` : ''}
-                    </span>
-                  </div>
-                  <span style={{ width: '60px', textAlign: 'center', alignSelf: 'center' }}>{item.quantity} {item.unit}</span>
-                  <span style={{ width: '80px', textAlign: 'right', alignSelf: 'center' }}>{item.subtotal.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="receipt-total-section">
-              <div className="receipt-row">
-                <span>ราคารวมสินค้า:</span>
-                <span>฿{receipt.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="receipt-row">
-                <span>ภาษีมูลค่าเพิ่ม (VAT 7%):</span>
-                <span>฿{receipt.vat.toFixed(2)}</span>
-              </div>
-              <div className="receipt-total-row grand-total" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '6px', marginTop: '4px' }}>
-                <span>รวมทั้งสิ้น:</span>
-                <span>฿{receipt.total.toFixed(2)}</span>
-              </div>
-              
-              {receipt.payment_method === 'cash' && (
-                <>
-                  <div className="receipt-row" style={{ color: '#4b5563', marginTop: '4px' }}>
-                    <span>รับเงินสด:</span>
-                    <span>฿{receipt.cashReceived.toFixed(2)}</span>
-                  </div>
-                  <div className="receipt-row" style={{ fontWeight: 'bold', color: '#059669' }}>
-                    <span>เงินทอน:</span>
-                    <span>฿{receipt.change.toFixed(2)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="receipt-footer">
-              {isQrPaymentMethod(receipt.payment_method) && receipt.promptPayQr && (
-                <div className="receipt-qr-code promptpay-receipt-qr">
-                  <img src={receipt.promptPayQr} alt="PromptPay QR" />
-                  [ QR PROMPTPAY ]
-                  <br />
-                  ตรวจสอบสต็อกแล้ว
-                </div>
-              )}
-              <p>*** ขอบคุณที่ใช้บริการ / THANK YOU ***</p>
-              <p style={{ fontSize: '9px', color: '#9ca3af' }}>บันทึกสต็อกและประวัติเรียบร้อยใน PostgreSQL</p>
-              
-              <button className="receipt-close-btn" style={{ width: '100%', marginTop: '10px' }} onClick={() => setReceipt(null)}>
-                พิมพ์ใบเสร็จและเริ่มรายการใหม่
+            <div className="modal-footer">
+              <button
+                onClick={() => setAllergyAlert(null)}
+                className="btn btn-primary"
+                style={{ backgroundColor: '#dc2626', width: '100%' }}
+              >
+                รับทราบและตรวจสอบ
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL TO REGISTER NEW PATIENT */}
+      {showAddCustomerModal && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-box" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <div className="modal-icon">👤</div>
+              <div className="modal-title">ลงทะเบียนผู้ป่วย / สมาชิกใหม่</div>
+              <div className="modal-subtitle">บันทึกประวัติสุขภาพและประวัติแพ้ยา</div>
+            </div>
+
+            <form onSubmit={handleCreateCustomer}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                    ชื่อ-นามสกุล <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="cash-input"
+                    style={{ fontSize: '13px', padding: '8px 12px', height: '38px' }}
+                    placeholder="เช่น ลุงเค (เค รุ่งเรือง)"
+                    value={newCustName}
+                    onChange={(e) => setNewCustName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                      เบอร์โทรศัพท์
+                    </label>
+                    <input
+                      type="text"
+                      className="cash-input"
+                      style={{ fontSize: '13px', padding: '8px 12px', height: '38px' }}
+                      placeholder="เช่น 0819998877"
+                      value={newCustPhone}
+                      onChange={(e) => setNewCustPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                      เลขบัตรประชาชน / Passport
+                    </label>
+                    <input
+                      type="text"
+                      className="cash-input"
+                      style={{ fontSize: '13px', padding: '8px 12px', height: '38px' }}
+                      placeholder="13 หลัก..."
+                      value={newCustIdCard}
+                      onChange={(e) => setNewCustIdCard(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                    โรคประจำตัว
+                  </label>
+                  <input
+                    type="text"
+                    className="cash-input"
+                    style={{ fontSize: '13px', padding: '8px 12px', height: '38px' }}
+                    placeholder="เช่น เบาหวาน, ความดันโลหิตสูง..."
+                    value={newCustConditions}
+                    onChange={(e) => setNewCustConditions(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: '#dc2626' }}>
+                    ⚠️ ประวัติการแพ้ยา (คั่นด้วยจุลภาค)
+                  </label>
+                  <input
+                    type="text"
+                    className="cash-input"
+                    style={{ fontSize: '13px', padding: '8px 12px', height: '38px', borderColor: '#fca5a5' }}
+                    placeholder="เช่น Penicillin, Sulfa, Amoxicillin..."
+                    value={newCustAllergies}
+                    onChange={(e) => setNewCustAllergies(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px', color: '#2563eb' }}>
+                    💊 ยาที่ใช้ปัจจุบัน
+                  </label>
+                  <input
+                    type="text"
+                    className="cash-input"
+                    style={{ fontSize: '13px', padding: '8px 12px', height: '38px' }}
+                    placeholder="เช่น Metformin 500mg, Amlodipine 5mg..."
+                    value={newCustCurrentMeds}
+                    onChange={(e) => setNewCustCurrentMeds(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowAddCustomerModal(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  บันทึกข้อมูลผู้ป่วย
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONTROLLED DRUG FORCE DATA ENTRY MODAL */}
+      {showControlledModal && (
+        <ControlledDrugModal
+          controlledItems={controlledItemsToLog}
+          customer={selectedCustomer}
+          onConfirm={(pInfo) => {
+            setShowControlledModal(false);
+            setPatientInfo(pInfo);
+            setShowConfirmModal(true);
+          }}
+          onCancel={() => setShowControlledModal(false)}
+        />
+      )}
+
+      {/* RENDER DYNAMIC RECEIPT PRINT MODAL */}
+      {receipt && (
+        <ReceiptModal
+          transaction={receipt}
+          onClose={() => setReceipt(null)}
+        />
       )}
 
       {/* TRANSACTION CONFIRMATION MODAL */}
@@ -719,7 +1122,6 @@ export default function PosRegisterPage() {
             </div>
 
             <div className="modal-body">
-              {/* Item list */}
               <div className="confirm-item-list">
                 {cartItemsArray.map((item, idx) => (
                   <div key={idx} className="confirm-item-row">
@@ -731,12 +1133,23 @@ export default function PosRegisterPage() {
                 ))}
               </div>
 
-              {/* Summary */}
               <div className="confirm-summary-rows">
+                {selectedCustomer && (
+                  <div className="confirm-row">
+                    <span>ลูกค้า/ผู้ป่วย</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {selectedCustomer.name}
+                    </span>
+                  </div>
+                )}
                 <div className="confirm-row">
                   <span>ช่องทางชำระเงิน</span>
                   <span style={{ fontWeight: 600, color: 'var(--teal-600)' }}>
-                    {paymentMethod === 'cash' ? '💵 เงินสด' : paymentMethod === 'qr_promptpay' ? '📱 PromptPay QR' : '💳 บัตรเครดิต'}
+                    {paymentMethod === 'cash'
+                      ? '💵 เงินสด'
+                      : paymentMethod === 'qr_promptpay'
+                      ? '📱 PromptPay QR'
+                      : '💳 บัตรเครดิต'}
                   </span>
                 </div>
                 <div className="confirm-row total">
@@ -747,7 +1160,9 @@ export default function PosRegisterPage() {
                   <>
                     <div className="confirm-row">
                       <span>รับเงินสด</span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>฿{parseFloat(cashReceived).toFixed(2)}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        ฿{parseFloat(cashReceived).toFixed(2)}
+                      </span>
                     </div>
                     <div className="confirm-row change">
                       <span>เงินทอน</span>
@@ -759,15 +1174,15 @@ export default function PosRegisterPage() {
             </div>
 
             <div className="modal-footer">
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowConfirmModal(false)}
-              >
+              <button className="btn btn-outline" onClick={() => setShowConfirmModal(false)}>
                 ยกเลิก
               </button>
               <button
                 className="btn btn-primary"
-                onClick={() => { setShowConfirmModal(false); handleCheckout(); }}
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  handleCheckout();
+                }}
               >
                 ยืนยันชำระเงิน
               </button>
