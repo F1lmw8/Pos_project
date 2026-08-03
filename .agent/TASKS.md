@@ -1,50 +1,46 @@
 # Agent Tasks
 
-Last updated: 2026-07-22
+Last updated: 2026-08-03
 
 ## Active Task
 
-- Completed GPP Pharmacy POS feature implementation.
+- Completed Barcode (EAN), SKU, FDA Reg. No. search system and dedicated "รายงานสรรพากรและ อย." (FDA & Tax Reports) module implementation based on reference system.
 
 ## Requested By User
 
-- Implement essential GPP (Good Pharmacy Practice) features based on FDA standards & CuraLink pharmacy reference.
+- Implement product search by FDA Reg. No. (อย.), SKU, and Barcode (EAN).
+- Build complete FDA & Tax Reports page ("รายงานสรรพากรและ อย.") with ภ.พ.30, ข.ย.9-12 / บ.ส., controlled drugs, and tax invoices audit.
 
 ## Completed
 
-- Created GPP schema additions in `db/schema.sql` (`drug_type`, `customers`, `controlled_drug_logs`).
-- Seeded database (`db/seed.cjs`) with GPP drug classifications, sample customers with allergy data, and FEFO lots.
-- Built Customer Profile API (`src/app/api/customers/route.js`).
-- Built GPP Reports API (`src/app/api/dashboard/gpp-reports/route.js`).
-- Created `ControlledDrugModal.jsx` for GPP Force Data Entry on controlled drugs.
-- Created `ReceiptModal.jsx` for printable receipts & tax invoices.
-- Created GPP Reports Dashboard page (`/dashboard/gpp-reports`).
-- Integrated Customer Selection & Drug Allergy Check in `src/app/page.jsx`.
-
-## Blockers
-
-- None.
+- Created schema columns and indexes (`sku`, `barcode`, `manufacturer`, `fda_status`) in `db/schema.sql`.
+- Updated `db/seed.cjs` to seed EAN barcodes, SKUs, manufacturers, and FDA verification status across 35,410 drug records.
+- Extended search queries in `src/app/api/products/route.js` and `src/app/api/dashboard/inventory-stock/route.js`.
+- Created `src/components/AddProductModal.jsx` matching reference design (3 tabs: Barcode/FDA search, Name search, Photo scan mockup).
+- Created `src/components/ProductDetailModal.jsx` matching reference design (Packaging & pricing, Customer tier prices, Stock levels, FDA registration).
+- Created dedicated FDA & Tax Reports page `src/app/dashboard/fda-tax-reports/page.jsx` & API `src/app/api/dashboard/tax-fda-reports/route.js`.
+- Added sidebar menu link in `src/components/DashboardLayout.jsx`.
 
 ## Handoff Notes
 
-### 2026-07-22 - Antigravity
+### 2026-08-03 - Antigravity
 
 Goal:
-- Add core GPP compliance features (Force Data Entry, Drug Allergy Warning, ข.ย. 9,10,11 Reports, Tax Invoice/Receipt).
+- Implement search by Barcode (EAN), SKU, and FDA Reg. No.
+- Build "รายงานสรรพากรและ อย." (FDA & Tax Reports) page based on CuraLink reference photos.
 
 Changed:
 - `db/schema.sql`, `db/seed.cjs`
-- `src/app/api/products/route.js`, `src/app/api/sales/route.js`
-- `src/app/api/customers/route.js` [NEW]
-- `src/app/api/dashboard/gpp-reports/route.js` [NEW]
-- `src/app/dashboard/gpp-reports/page.jsx` [NEW]
-- `src/components/ControlledDrugModal.jsx` [NEW]
-- `src/components/ReceiptModal.jsx` [NEW]
-- `src/components/DashboardLayout.jsx`, `src/app/page.jsx`
+- `src/app/api/products/route.js`, `src/app/api/dashboard/inventory-stock/route.js`
+- `src/components/AddProductModal.jsx` [NEW]
+- `src/components/ProductDetailModal.jsx` [NEW]
+- `src/app/api/dashboard/tax-fda-reports/route.js` [NEW]
+- `src/app/dashboard/fda-tax-reports/page.jsx` [NEW]
+- `src/app/dashboard/stock/page.jsx`, `src/components/DashboardLayout.jsx`
 
 Verified:
 - `node db/seed.cjs` (35,410 records seeded)
-- `npm run build` (compiled cleanly)
+- `npm run build` (20/20 routes compiled cleanly)
 
 Next:
 - Connect printer hardware or test print modals in browser.

@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
+import AddProductModal from '../../../components/AddProductModal';
+import ProductDetailModal from '../../../components/ProductDetailModal';
 
 const modes = [
   { key: 'available', label: 'มีสินค้าพร้อมขาย' },
@@ -34,6 +36,10 @@ export default function StockMonitorPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Modals state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,11 +88,64 @@ export default function StockMonitorPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: '20px' }}>
+      {/* Modals */}
+      <AddProductModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSelectProduct={(product) => setSelectedProduct(product)}
+      />
+
+      <ProductDetailModal
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        product={selectedProduct}
+      />
+
+      {/* Page Header with Action Buttons matching CuraLink */}
+      <div className="page-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="page-title">สินค้าคงเหลือ (Stock Monitor)</h1>
-          <p className="page-subtitle">ตรวจดูรายการที่ยังมีล็อตพร้อมขายตาม FEFO แยกจำนวน วันหมดอายุ และสถานะสต็อก</p>
+          <h1 className="page-title">สินค้า (Products & Stock)</h1>
+          <p className="page-subtitle">ดูแลสินค้าทุกชิ้นให้มีราคาถูกต้อง ติดตามได้ และพร้อมขาย</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            style={{
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>+</span> เพิ่มสินค้า
+          </button>
+
+          <button
+            onClick={() => window.location.href = '/dashboard/fda-tax-reports'}
+            style={{
+              backgroundColor: '#0f172a',
+              color: '#10b981',
+              border: '1px solid #10b981',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🛡</span> ตรวจสอบ อย.
+          </button>
         </div>
       </div>
 
@@ -121,28 +180,28 @@ export default function StockMonitorPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div style={{ position: 'relative' }}>
+          {/* Search bar matching CuraLink placeholder */}
+          <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ค้นหาชื่อยา / active ingredient / TMT"
+              placeholder="ค้นหาด้วยชื่อ, SKU, บาร์โค้ด หรือ เลข อย..."
               className="form-input"
-              style={{ width: '280px', paddingLeft: '32px' }}
+              style={{ width: '100%', paddingLeft: '34px' }}
             />
             <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px', pointerEvents: 'none' }}>🔍</span>
           </div>
         </div>
       </div>
 
-      {/* Stock Table */}
+      {/* Stock Table matching reference table columns */}
       <div className="dash-card">
         {error && <div className="error-banner" style={{ marginBottom: 14 }}>⚠ {error}</div>}
 
         {loading ? (
           <div className="loading-center" style={{ padding: '40px' }}>
             <div className="spinner"></div>
-            <span>กำลังโหลดข้อมูลสต็อก...</span>
+            <span>กำลังโหลดข้อมูลสินค้าและสต็อก...</span>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -150,42 +209,59 @@ export default function StockMonitorPage() {
               <thead>
                 <tr>
                   <th>สินค้า</th>
-                  <th className="td-right">พร้อมขาย</th>
-                  <th className="td-right">Stock ระบบ</th>
-                  <th className="td-center">ล็อต</th>
-                  <th className="td-center">หมดอายุใกล้สุด</th>
-                  <th className="td-right">ใกล้หมดอายุ</th>
+                  <th>SKU / บาร์โค้ด</th>
+                  <th>หมวดหมู่</th>
+                  <th className="td-right">ราคา</th>
+                  <th className="td-right">สต็อก</th>
+                  <th>เลข อย.</th>
                   <th className="td-center">สถานะ</th>
+                  <th className="td-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
                 {items.length > 0 ? items.map((item) => {
                   const status = getStockStatus(item);
                   return (
-                    <tr key={item.tmt_id}>
+                    <tr key={item.tmt_id} style={{ cursor: 'pointer' }} onClick={() => setSelectedProduct(item)}>
                       <td>
                         <div className="td-bold">{item.trade_name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                          TMT-{item.tmt_id} · {item.strength || '-'} · <em>{item.active_ingredient || '-'}</em>
+                          {item.active_ingredient || '-'} · {item.strength || '-'}
                         </div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--teal-600)', fontFamily: 'monospace' }}>
+                          {item.sku || 'P-001'}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 2 }}>
+                          {item.barcode || '4057598015370'}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          backgroundColor: '#f1f5f9',
+                          color: '#334155',
+                          borderRadius: '12px',
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontWeight: '600'
+                        }}>
+                          {item.dosage_form || 'ยา'}
+                        </span>
+                      </td>
+                      <td className="td-right" style={{ fontWeight: 700 }}>
+                        ฿{Number(item.price || 0).toFixed(2)}
                       </td>
                       <td className="td-right" style={{ fontWeight: 700, color: item.sellable_quantity > 0 ? 'var(--teal-600)' : '#dc2626' }}>
                         {item.sellable_quantity.toLocaleString('th-TH')} {item.unit}
                       </td>
-                      <td className="td-right" style={{ color: 'var(--text-secondary)' }}>
-                        {item.system_stock.toLocaleString('th-TH')}
-                      </td>
-                      <td className="td-center" style={{ color: 'var(--text-secondary)' }}>
-                        {item.lot_count}
-                      </td>
-                      <td className="td-center" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        {formatDate(item.nearest_expiry_date)}
-                      </td>
-                      <td className="td-right" style={{
-                        fontWeight: item.expiring_90_quantity > 0 ? 700 : 400,
-                        color: item.expiring_90_quantity > 0 ? '#c2410c' : 'var(--text-muted)'
-                      }}>
-                        {item.expiring_90_quantity > 0 ? item.expiring_90_quantity.toLocaleString('th-TH') : '-'}
+                      <td>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>
+                          {item.fda_reg_no || '-'}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          {item.fda_status === 'verified' ? '✓ ตรวจสอบแล้ว' : 'ⓘ ไม่ได้กำหนด'}
+                        </div>
                       </td>
                       <td className="td-center">
                         <span style={{
@@ -202,11 +278,26 @@ export default function StockMonitorPage() {
                           {status.label}
                         </span>
                       </td>
+                      <td className="td-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setSelectedProduct(item)}
+                          style={{
+                            backgroundColor: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          รายละเอียด
+                        </button>
+                      </td>
                     </tr>
                   );
                 }) : (
                   <tr>
-                    <td colSpan="7">
+                    <td colSpan="8">
                       <div className="empty-state" style={{ padding: '36px' }}>
                         <div className="empty-icon">📦</div>
                         <div>ไม่พบสินค้าตามเงื่อนไขนี้</div>

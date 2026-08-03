@@ -110,19 +110,29 @@ async function runSeed() {
           drugType = 'household'; // ยาสามัญประจำบ้าน
         }
 
-        // Mock FDA registration number
-        const fdaRegNo = `1A ${Math.floor(Math.random() * 800) + 100}/${Math.floor(Math.random() * 20) + 50}`;
+        // Mock FDA registration number, Barcode (EAN-13), SKU, Manufacturer, and FDA Status
+        const fdaRegNo = item.t && item.t.toLowerCase().includes('blackmores') ? '2C 45/43' : `1A ${Math.floor(Math.random() * 800) + 100}/${Math.floor(Math.random() * 20) + 50}`;
+        const fdaStatus = (i % 3 === 0) ? 'verified' : (i % 5 === 0) ? 'not_specified' : 'unverified';
+        
+        // EAN-13 barcode starting with 885 (Thailand prefix) or 405
+        const barcodeBase = (i % 2 === 0) ? '885' : '405';
+        const barcode = (item.t && item.t.toLowerCase().includes('adalat')) ? '4057598015370' : `${barcodeBase}${String(Math.floor(Math.random() * 1000000000)).padStart(10, '0')}`;
+        
+        const sku = `P-${String(i + 1).padStart(3, '0')}`;
+        
+        const mfgList = ['Bayer AG', 'Blackmores Ltd.', 'Siam Pharmaceutical', 'GPO Thailand', 'Pfizer Inc.', 'AstraZeneca', 'Novartis Thailand', 'Osothinter', 'T.O. Pharma'];
+        const manufacturer = item.m || mfgList[i % mfgList.length];
 
-        const popularKeywords = ['tylenol', 'sara', 'algycon', 'gaviscon', 'nexium', 'amoxil', 'iprofen', 'viagra', 'lipitor', 'omeprazole', 'panadol', 'decil', 'roche', 'ponstan', 'cravit', 'norvasc', 'plavix', 'singulair', 'paracetamol'];
+        const popularKeywords = ['tylenol', 'sara', 'algycon', 'gaviscon', 'nexium', 'amoxil', 'iprofen', 'viagra', 'lipitor', 'omeprazole', 'panadol', 'decil', 'roche', 'ponstan', 'cravit', 'norvasc', 'plavix', 'singulair', 'paracetamol', 'adalat', 'blackmores'];
         const isPopular = popularKeywords.some(kw => tradeLower.includes(kw) || ingLower.includes(kw));
         const popularityScore = isPopular ? Math.floor(Math.random() * 401) + 100 : 0;
 
-        // Insert drug with GPP drug_type
+        // Insert drug with GPP drug_type, FDA reg no, SKU, barcode, manufacturer, fda_status
         await client.query(`
-          INSERT INTO drugs (tmt_id, trade_name, active_ingredient, unit, strength, dosage_form, drug_type, fda_reg_no, popularity_score)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO drugs (tmt_id, trade_name, active_ingredient, unit, strength, dosage_form, drug_type, fda_reg_no, fda_status, sku, barcode, manufacturer, popularity_score)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           ON CONFLICT (tmt_id) DO NOTHING
-        `, [tmtId, tradeName, activeIngredient, unit, strength, dosageForm, drugType, fdaRegNo, popularityScore]);
+        `, [tmtId, tradeName, activeIngredient, unit, strength, dosageForm, drugType, fdaRegNo, fdaStatus, sku, barcode, manufacturer, popularityScore]);
 
         const stockQty = Math.floor(Math.random() * 136) + 15;
         

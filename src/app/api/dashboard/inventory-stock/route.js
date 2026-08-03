@@ -15,7 +15,10 @@ export async function GET(request) {
       filters.push(`(
         LOWER(d.trade_name) LIKE $${params.length}
         OR LOWER(d.active_ingredient) LIKE $${params.length}
-        OR d.tmt_id LIKE $${params.length}
+        OR LOWER(d.tmt_id) LIKE $${params.length}
+        OR LOWER(d.barcode) LIKE $${params.length}
+        OR LOWER(d.sku) LIKE $${params.length}
+        OR LOWER(d.fda_reg_no) LIKE $${params.length}
       )`);
     }
 
@@ -38,6 +41,12 @@ export async function GET(request) {
         d.unit,
         d.strength,
         d.dosage_form,
+        d.drug_type,
+        d.fda_reg_no,
+        COALESCE(d.fda_status, 'unverified') AS fda_status,
+        d.sku,
+        d.barcode,
+        d.manufacturer,
         COALESCE(d.reorder_point, 10) AS reorder_point,
         COALESCE(i.stock_quantity, 0) AS system_stock,
         COALESCE(i.price, 0) AS price,

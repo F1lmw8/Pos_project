@@ -14,7 +14,7 @@ export async function GET(request) {
       // Return top 50 drugs sorted by popularity score first
       result = await pool.query(`
         SELECT d.tmt_id, d.trade_name, d.active_ingredient, d.unit, d.strength, d.dosage_form,
-               d.drug_type, d.fda_reg_no, d.popularity_score,
+               d.drug_type, d.fda_reg_no, d.fda_status, d.sku, d.barcode, d.manufacturer, d.popularity_score,
                LEAST(COALESCE(i.stock_quantity, 0), COALESCE(lot_stock.sellable_quantity, 0)) AS stock_quantity,
                i.price
         FROM drugs d
@@ -40,7 +40,10 @@ export async function GET(request) {
       const matchClauses = [
         'LOWER(trade_name) LIKE $1',
         'LOWER(active_ingredient) LIKE $1',
-        'tmt_id LIKE $1'
+        'LOWER(tmt_id) LIKE $1',
+        'LOWER(barcode) LIKE $1',
+        'LOWER(sku) LIKE $1',
+        'LOWER(fda_reg_no) LIKE $1'
       ];
 
       // Add phonetically mapped generic search keywords
@@ -103,7 +106,7 @@ export async function GET(request) {
           ORDER BY tmt_id, match_rank
         )
         SELECT d.tmt_id, d.trade_name, d.active_ingredient, d.unit, d.strength, d.dosage_form,
-               d.drug_type, d.fda_reg_no, d.popularity_score,
+               d.drug_type, d.fda_reg_no, d.fda_status, d.sku, d.barcode, d.manufacturer, d.popularity_score,
                LEAST(COALESCE(i.stock_quantity, 0), COALESCE(lot_stock.sellable_quantity, 0)) AS stock_quantity,
                i.price
         FROM ranked_candidates d

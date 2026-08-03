@@ -8,9 +8,10 @@ const navItems = [
   {
     section: 'รายงาน',
     links: [
-      { href: '/dashboard',            label: 'ภาพรวม & สรุปยอด',      icon: '◎' },
-      { href: '/dashboard/sales-logs', label: 'ประวัติธุรกรรม',          icon: '≡' },
-      { href: '/dashboard/gpp-reports', label: 'รายงาน GPP (ข.ย.)',    icon: '📋' },
+      { href: '/dashboard',                 label: 'ภาพรวม & สรุปยอด',      icon: '◎' },
+      { href: '/dashboard/sales-logs',      label: 'ประวัติธุรกรรม',          icon: '≡' },
+      { href: '/dashboard/fda-tax-reports', label: 'รายงานสรรพากรและ อย.', icon: '🏛' },
+      { href: '/dashboard/gpp-reports',     label: 'รายงาน GPP (ข.ย.)',    icon: '📋' },
     ]
   },
   {

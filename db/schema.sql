@@ -16,7 +16,11 @@ CREATE TABLE drugs (
     strength TEXT,                         -- Strength (matches 's')
     dosage_form TEXT,                      -- Dosage form (matches 'd')
     drug_type VARCHAR(50) DEFAULT 'general', -- 'general', 'household', 'dangerous' (ยาอันตราย), 'special_controlled' (ยาควบคุมพิเศษ)
-    fda_reg_no VARCHAR(50),                -- เลขทะเบียน อย. (เช่น 1A 123/45)
+    fda_reg_no VARCHAR(50),                -- เลขทะเบียน อย. (เช่น 1A 123/45, 2C 45/43)
+    fda_status VARCHAR(50) DEFAULT 'unverified', -- 'verified', 'unverified', 'not_specified'
+    sku VARCHAR(50),                       -- รหัส SKU สินค้า (เช่น P-001)
+    barcode VARCHAR(50),                   -- รหัสบาร์โค้ด EAN-13 / EAN-8 (เช่น 4057598015370)
+    manufacturer VARCHAR(255),             -- ผู้ผลิต / แบรนด์
     reorder_point INTEGER DEFAULT 10 CHECK (reorder_point >= 0),
     popularity_score INTEGER DEFAULT 0,    -- Popularity metric (Best-seller boost)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -26,6 +30,9 @@ CREATE TABLE drugs (
 CREATE INDEX idx_drugs_trade_name ON drugs (trade_name);
 CREATE INDEX idx_drugs_active_ingredient ON drugs (active_ingredient);
 CREATE INDEX idx_drugs_drug_type ON drugs (drug_type);
+CREATE INDEX idx_drugs_barcode ON drugs (barcode);
+CREATE INDEX idx_drugs_sku ON drugs (sku);
+CREATE INDEX idx_drugs_fda_reg_no ON drugs (fda_reg_no);
 
 -- 2. Customers / Patients Table
 CREATE TABLE customers (
