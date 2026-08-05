@@ -1,59 +1,88 @@
 import { NextResponse } from 'next/server';
 
-const FDA_RESOURCE_IDS = [
-  { type: 'ผย1 (ยาแผนปัจจุบัน)', id: 'e73593c1-870e-4243-8397-80ef12b58e69' },
-  { type: 'ผยบ (ยาโบราณ)', id: '43178d68-54cc-4db6-b76f-ef4e9252e43b' }
-];
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').trim();
 
-    let allRecords = [];
-
-    // Query live FDA API for both ผย1 and ผยบ
-    for (const item of FDA_RESOURCE_IDS) {
-      try {
-        const fdaUrl = `https://catalog.fda.moph.go.th/api/3/action/datastore_search?resource_id=${item.id}&limit=50${q ? `&q=${encodeURIComponent(q)}` : ''}`;
-        
-        const res = await fetch(fdaUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          next: { revalidate: 3600 } // Cache for 1 hour
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          const records = json?.result?.records || [];
-          records.forEach((r) => {
-            allRecords.push({
-              id: r._id,
-              type: r['ประเภท'] || r['ประเภทคำขอ'] || item.type,
-              license_no: r['เลขที่ใบอนุญาต'] || '-',
-              company_name: r['ชื่อสถานที่'] || '-',
-              address: `${r['แขวง'] || ''} ${r['เขต'] || ''} ${r['จังหวัด'] || ''}`.trim(),
-              status: r['สถานะ'] || 'คงอยู่',
-              expiry_year: r['ปีพ.ศ. ที่หมดอายุ'] || '2569',
-              activity: r['กิจกรรม'] || 'ยาสำเร็จรูป'
-            });
-          });
-        }
-      } catch (err) {
-        console.error(`Error querying FDA API for ${item.type}:`, err);
-      }
+    if (!q) {
+      return NextResponse.json({
+        success: true,
+        source: 'porta_fda_api',
+        count: 0,
+        data: []
+      });
     }
+
+    const model = {
+      SEARCH_VALUE: q,
+      RADIO_TYPE: 'ผลิตภัณฑ์ทั้งหมด',
+      RADIO_TYPE_ETC_FOOD: null,
+      RADIO_TYPE_ETC_DRUG: null,
+      RADIO_TYPE_ETC_HERB: null,
+      RADIO_TYPE_ETC_TXC: null,
+      RADIO_TYPE_ETC_CMT: null,
+      RADIO_TYPE_ETC_NCT: null,
+      RADIO_TYPE_ETC_MDC: null,
+      RADIO_TYPE_ETC_ADVER: null,
+      RADIO_TYPE_LOCATION: null
+    };
+
+    const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
+    const bodyStr = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="MODEL"',
+      '',
+      JSON.stringify(model),
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="search_input"',
+      '',
+      q,
+      `--${boundary}--\r\n`
+    ].join('\r\n');
+
+    const res = await fetch('http://porta.fda.moph.go.th/FDA_SEARCH_CENTER_BACKEND/SEACH_ALL/GET_SEARCH', {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Content-Type': `multipart/form-data; boundary=${boundary}`
+      },
+      body: bodyStr,
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      throw new Error(`FDA backend responded with status: ${res.status}`);
+    }
+
+    const json = await res.json();
+    const records = Array.isArray(json) ? json : [];
+
+    const mappedData = records.map((r, index) => ({
+      id: r.IDA || r.Newcode || index,
+      type: r.typepro || 'ผลิตภัณฑ์สุขภาพ',
+      license_no: r.lcnno || '-',
+      company_name: r.licen || r.thanm || '-',
+      product_name_th: r.productha || '-',
+      product_name_en: r.produceng || '-',
+      address: r.Addr || '-',
+      status: r.cncnm || 'คงอยู่',
+      newcode: r.Newcode || '',
+      detail_url: r.URLs_NEW || '',
+      type_allow: r.typeallow || ''
+    }));
 
     return NextResponse.json({
       success: true,
-      source: 'live_fda_api',
-      count: allRecords.length,
-      data: allRecords
+      source: 'porta_fda_api',
+      count: mappedData.length,
+      data: mappedData
     });
 
   } catch (error) {
     console.error('FDA Lookup error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch FDA license data' },
+      { success: false, error: 'Failed to fetch FDA data from porta.fda.moph.go.th', message: error.message },
       { status: 500 }
     );
   }

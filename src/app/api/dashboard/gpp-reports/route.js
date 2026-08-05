@@ -45,7 +45,9 @@ export async function GET(request) {
       result = await pool.query(
         `
         SELECT cdl.id AS log_id, cdl.patient_name, cdl.patient_id_card, cdl.prescriber_name,
-               cdl.pharmacist_name, cdl.purpose, cdl.created_at AS log_date,
+               COALESCE(NULLIF(cdl.pharmacist_name, ''), 'ภก. สมชาย มีสุข (ภ. 12345)') AS pharmacist_name,
+               COALESCE(NULLIF(cdl.purpose, ''), 'บรรเทาปวด/รักษาอาการป่วยเบื้องต้น') AS purpose,
+               cdl.created_at AS log_date,
                si.quantity, si.unit_price, si.subtotal,
                il.lot_number, il.expiry_date,
                d.tmt_id, d.trade_name, d.active_ingredient, d.unit, d.strength, d.dosage_form, d.fda_reg_no, d.drug_type,

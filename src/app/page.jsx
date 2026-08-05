@@ -5,6 +5,23 @@ import Link from 'next/link';
 import { createPromptPayQrService, isQrPaymentMethod } from '../utils/paymentQr';
 import ReceiptModal from '../components/ReceiptModal';
 import ControlledDrugModal from '../components/ControlledDrugModal';
+import PatientHistoryModal from '../components/PatientHistoryModal';
+import ThemeToggle from '../components/ThemeToggle';
+import {
+  Store,
+  Users,
+  ClipboardList,
+  LayoutDashboard,
+  Search,
+  UserPlus,
+  Banknote,
+  QrCode,
+  CreditCard,
+  History,
+  Plus,
+  Minus,
+  Trash2
+} from 'lucide-react';
 
 const PROMPTPAY_ID = '0989342456';
 
@@ -15,8 +32,14 @@ export default function PosRegisterPage() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState({});
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [dispensingReason, setDispensingReason] = useState('บรรเทาปวด/มีไข้');
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Patient History Modal State
+  const [showPatientHistoryModal, setShowPatientHistoryModal] = useState(false);
+  const [historyCustomerId, setHistoryCustomerId] = useState(null);
+  const [historyCustomerName, setHistoryCustomerName] = useState('');
 
   // Customer & Patient Profile State
   const [customers, setCustomers] = useState([]);
@@ -32,6 +55,10 @@ export default function PosRegisterPage() {
   const [newCustConditions, setNewCustConditions] = useState('');
   const [newCustAllergies, setNewCustAllergies] = useState('');
   const [newCustCurrentMeds, setNewCustCurrentMeds] = useState('');
+  const [newCustAge, setNewCustAge] = useState('');
+  const [newCustGender, setNewCustGender] = useState('');
+  const [newCustWeight, setNewCustWeight] = useState('');
+  const [newCustHeight, setNewCustHeight] = useState('');
 
   // Controlled Drug Modal State (GPP Compliance)
   const [showControlledModal, setShowControlledModal] = useState(false);
@@ -103,6 +130,10 @@ export default function PosRegisterPage() {
           name: newCustName.trim(),
           phone: newCustPhone.trim(),
           id_card: newCustIdCard.trim(),
+          age: newCustAge ? parseInt(newCustAge, 10) : null,
+          gender: newCustGender,
+          weight: newCustWeight ? parseFloat(newCustWeight) : null,
+          height: newCustHeight ? parseFloat(newCustHeight) : null,
           medical_conditions: newCustConditions.trim(),
           allergies: newCustAllergies.trim(),
           current_medications: newCustCurrentMeds.trim()
@@ -116,6 +147,10 @@ export default function PosRegisterPage() {
         setNewCustName('');
         setNewCustPhone('');
         setNewCustIdCard('');
+        setNewCustAge('');
+        setNewCustGender('');
+        setNewCustWeight('');
+        setNewCustHeight('');
         setNewCustConditions('');
         setNewCustAllergies('');
         setNewCustCurrentMeds('');
@@ -409,6 +444,14 @@ export default function PosRegisterPage() {
       unit_price: item.product.price
     }));
 
+    const pPayload = pInfo || {
+      patient_name: selectedCustomer?.name || 'ลูกค้าทั่วไป',
+      patient_id_card: selectedCustomer?.id_card || '',
+      prescriber_name: 'ภก. ผู้สั่งใช้ยา',
+      pharmacist_name: 'ภก. สมชาย มีสุข (ภ. 12345)',
+      purpose: dispensingReason || 'บรรเทาปวด/มีไข้'
+    };
+
     try {
       const response = await fetch('/api/sales', {
         method: 'POST',
@@ -417,7 +460,7 @@ export default function PosRegisterPage() {
           items: itemsPayload,
           payment_method: paymentMethod,
           customer_id: selectedCustomer?.id || null,
-          patient_info: pInfo
+          patient_info: pPayload
         })
       });
 
@@ -454,20 +497,21 @@ export default function PosRegisterPage() {
       {/* LEFT SECTION: Search & Drug Products Grid */}
       <section className="catalogue-section">
         <header className="pos-header">
-          <h1 className="brand-title">
-            <div className="brand-icon">💊</div>
-            RDU Pharmacy POS
+          <h1 className="brand-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Store size={22} style={{ color: 'var(--teal-600)' }} />
+            CSMJU_Pharmacy
             <span className="brand-badge">Front Counter</span>
           </h1>
           <div className="header-status">
-            <Link href="/dashboard/customers" className="btn btn-outline btn-sm">
-              👤 ทะเบียนผู้ป่วย
+            <ThemeToggle />
+            <Link href="/dashboard/customers" className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Users size={15} /> ทะเบียนผู้ป่วย
             </Link>
-            <Link href="/dashboard/gpp-reports" className="btn btn-outline btn-sm">
-              📋 รายงาน GPP
+            <Link href="/dashboard/gpp-reports" className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ClipboardList size={15} /> รายงาน GPP
             </Link>
-            <Link href="/dashboard" className="btn btn-primary btn-sm">
-              ◎ แดชบอร์ด
+            <Link href="/dashboard" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <LayoutDashboard size={15} /> แดชบอร์ด
             </Link>
           </div>
         </header>
@@ -630,16 +674,16 @@ export default function PosRegisterPage() {
       {/* RIGHT SECTION: Cart Register Billing */}
       <section className="cart-section">
         {/* Customer Selection & Patient Profile Header */}
-        <div style={{ padding: '12px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-muted)' }}>
+        <div style={{ padding: '14px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              👤 ผู้ป่วย / สมาชิก:
+              <Users size={14} style={{ color: 'var(--teal-600)' }} /> ผู้ป่วย / สมาชิก:
             </span>
             <button
               onClick={() => setShowAddCustomerModal(true)}
-              style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal-600)', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal-600)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
             >
-              + ลงทะเบียนผู้ป่วยใหม่
+              <UserPlus size={12} /> ลงทะเบียนผู้ป่วยใหม่
             </button>
           </div>
 
@@ -647,16 +691,17 @@ export default function PosRegisterPage() {
           <div style={{ marginBottom: '6px' }}>
             <input
               type="text"
-              placeholder="🔍 ค้นหาชื่อ หรือ เบอร์โทร (เช่น ลุงเค)..."
+              placeholder="ค้นหาชื่อ หรือ เบอร์โทร (เช่น ลุงเค)..."
               value={customerSearch}
               onChange={handleCustomerSearchChange}
               style={{
                 width: '100%',
-                padding: '6px 10px',
+                padding: '7px 10px',
                 fontSize: '12px',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--border)',
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--bg-surface)',
+                color: 'var(--text-primary)',
                 outline: 'none'
               }}
             />
@@ -670,11 +715,12 @@ export default function PosRegisterPage() {
             }}
             style={{
               width: '100%',
-              padding: '6px 10px',
+              padding: '7px 10px',
               fontSize: '12px',
-              borderRadius: '6px',
+              borderRadius: '8px',
               border: '1px solid var(--border)',
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
               outline: 'none',
               fontWeight: 500
             }}
@@ -682,7 +728,7 @@ export default function PosRegisterPage() {
             <option value="">-- ไม่ระบุ (ลูกค้าทั่วไป) --</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
-                👤 {c.name} {c.phone ? `(${c.phone})` : ''} {c.allergies?.length > 0 ? '⚠️ แพ้ยา' : ''}
+                {c.name} {c.phone ? `(${c.phone})` : ''} {c.allergies?.length > 0 ? '⚠️ แพ้ยา' : ''}
               </option>
             ))}
           </select>
@@ -693,7 +739,7 @@ export default function PosRegisterPage() {
               style={{
                 marginTop: '8px',
                 padding: '10px 12px',
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--bg-surface)',
                 border: '1.5px solid var(--teal-600)',
                 borderRadius: '8px',
                 fontSize: '12px'
@@ -701,8 +747,8 @@ export default function PosRegisterPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', paddingBottom: '4px', borderBottom: '1px solid var(--border)' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-                    👤 {selectedCustomer.name}
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Users size={13} /> {selectedCustomer.name}
                   </div>
                   {selectedCustomer.phone && (
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -710,13 +756,37 @@ export default function PosRegisterPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => setSelectedCustomer(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px' }}
-                  title="ยกเลิกการเลือก"
-                >
-                  ✕
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    onClick={() => {
+                      setHistoryCustomerId(selectedCustomer.id);
+                      setHistoryCustomerName(selectedCustomer.name);
+                      setShowPatientHistoryModal(true);
+                    }}
+                    style={{
+                      backgroundColor: '#065f46',
+                      color: '#a7f3d0',
+                      border: '1px solid #10b981',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>📜</span> ประวัติการซื้อยา
+                  </button>
+                  <button
+                    onClick={() => setSelectedCustomer(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px' }}
+                    title="ยกเลิกการเลือก"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* Patient Health Details */}
@@ -846,6 +916,59 @@ export default function PosRegisterPage() {
             </div>
           </div>
 
+          {/* Dispensing Reason / Indication Input for GPP ข.ย. 11 Compliance */}
+          {cartItemsArray.length > 0 && (
+            <div style={{ marginBottom: '10px', padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                📋 เหตุผลในการจ่ายยา / ข้อบ่งใช้ (GPP ข.ย. 11):
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '5px' }}>
+                {[
+                  'บรรเทาปวด/มีไข้',
+                  'ติดเชื้อแบคทีเรีย',
+                  'ปวดข้อ/ปวดกล้ามเนื้อ',
+                  'ความดันโลหิตสูง',
+                  'ใช้ตามคำแนะนำเภสัชกร'
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setDispensingReason(reason)}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: dispensingReason === reason ? 700 : 500,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: dispensingReason === reason ? 'var(--teal-600)' : 'var(--bg-card)',
+                      color: dispensingReason === reason ? '#ffffff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={dispensingReason}
+                onChange={(e) => setDispensingReason(e.target.value)}
+                placeholder="ระบุเหตุผลในการจ่ายยา..."
+                style={{
+                  width: '100%',
+                  padding: '5px 8px',
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          )}
+
           {/* Payment Method Selector */}
           <div className="payment-grid">
             <button
@@ -855,7 +978,7 @@ export default function PosRegisterPage() {
                 setErrorMsg('');
               }}
             >
-              <span className="payment-btn-icon">💵</span>
+              <Banknote size={16} />
               เงินสด
             </button>
             <button
@@ -866,7 +989,7 @@ export default function PosRegisterPage() {
                 setErrorMsg('');
               }}
             >
-              <span className="payment-btn-icon">📱</span>
+              <QrCode size={16} />
               PromptPay
             </button>
             <button
@@ -877,7 +1000,7 @@ export default function PosRegisterPage() {
                 setErrorMsg('');
               }}
             >
-              <span className="payment-btn-icon">💳</span>
+              <CreditCard size={16} />
               บัตรเครดิต
             </button>
           </div>
@@ -1025,6 +1148,66 @@ export default function PosRegisterPage() {
                       placeholder="13 หลัก..."
                       value={newCustIdCard}
                       onChange={(e) => setNewCustIdCard(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                      อายุ (ปี)
+                    </label>
+                    <input
+                      type="number"
+                      className="cash-input"
+                      style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                      placeholder="เช่น 45"
+                      value={newCustAge}
+                      onChange={(e) => setNewCustAge(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                      เพศ
+                    </label>
+                    <select
+                      className="cash-input"
+                      style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                      value={newCustGender}
+                      onChange={(e) => setNewCustGender(e.target.value)}
+                    >
+                      <option value="">ไม่ระบุ</option>
+                      <option value="ชาย">ชาย</option>
+                      <option value="หญิง">หญิง</option>
+                      <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                      น้ำหนัก (กก.)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="cash-input"
+                      style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                      placeholder="เช่น 65.5"
+                      value={newCustWeight}
+                      onChange={(e) => setNewCustWeight(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                      ส่วนสูง (ซม.)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="cash-input"
+                      style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                      placeholder="เช่น 170"
+                      value={newCustHeight}
+                      onChange={(e) => setNewCustHeight(e.target.value)}
                     />
                   </div>
                 </div>
@@ -1190,6 +1373,13 @@ export default function PosRegisterPage() {
           </div>
         </div>
       )}
+
+      <PatientHistoryModal
+        isOpen={showPatientHistoryModal}
+        onClose={() => setShowPatientHistoryModal(false)}
+        customerId={historyCustomerId}
+        customerName={historyCustomerName}
+      />
     </div>
   );
 }

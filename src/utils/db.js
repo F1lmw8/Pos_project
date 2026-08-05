@@ -10,6 +10,7 @@ if (!pool) {
   
   pool = new Pool({
     connectionString,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
     max: 20,              // Maximum number of clients in pool
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 4000

@@ -41,46 +41,35 @@ export default function StockMonitorPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const fetchStock = React.useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = new URLSearchParams({ mode });
+      if (query.trim()) params.set('q', query.trim());
 
-    async function fetchStock() {
-      setLoading(true);
-      setError('');
-      try {
-        const params = new URLSearchParams({ mode });
-        if (query.trim()) params.set('q', query.trim());
+      const response = await fetch(`/api/dashboard/inventory-stock?${params.toString()}`);
+      const result = await response.json();
 
-        const response = await fetch(`/api/dashboard/inventory-stock?${params.toString()}`, {
-          signal: controller.signal
-        });
-        const responseText = await response.text();
-        let result;
-
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          throw new Error(response.ok ? 'API ส่งข้อมูลกลับมาไม่ถูกต้อง' : responseText || 'โหลดข้อมูลสต็อกไม่สำเร็จ');
-        }
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'โหลดข้อมูลสต็อกไม่สำเร็จ');
-        }
-
-        setItems(result.data);
-        setSummary(result.summary);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'โหลดข้อมูลสต็อกไม่สำเร็จ');
-        }
-      } finally {
-        setLoading(false);
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'โหลดข้อมูลสต็อกไม่สำเร็จ');
       }
-    }
 
-    const timer = setTimeout(fetchStock, 250);
-    return () => { clearTimeout(timer); controller.abort(); };
+      setItems(result.data || []);
+      setSummary(result.summary || null);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'โหลดข้อมูลสต็อกไม่สำเร็จ');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [mode, query]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchStock, 250);
+    return () => clearTimeout(timer);
+  }, [fetchStock]);
 
   const totals = useMemo(() => summary || {
     item_count: 0, sellable_units: 0, low_stock_count: 0, expiring_90_units: 0
@@ -92,13 +81,33 @@ export default function StockMonitorPage() {
       <AddProductModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSelectProduct={(product) => setSelectedProduct(product)}
+        onSelectProduct={async (product) => {
+          try {
+            const res = await fetch('/api/products', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(product)
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+              setSelectedProduct(json.data);
+            } else {
+              setSelectedProduct(product);
+            }
+          } catch (e) {
+            console.error(e);
+            setSelectedProduct(product);
+          } finally {
+            fetchStock();
+          }
+        }}
       />
 
       <ProductDetailModal
         isOpen={!!selectedProduct}
         onClose={() => setSelectedProduct(null)}
         product={selectedProduct}
+        onUpdateSuccess={fetchStock}
       />
 
       {/* Page Header with Action Buttons matching CuraLink */}
@@ -127,25 +136,6 @@ export default function StockMonitorPage() {
           >
             <span>+</span> เพิ่มสินค้า
           </button>
-
-          <button
-            onClick={() => window.location.href = '/dashboard/fda-tax-reports'}
-            style={{
-              backgroundColor: '#0f172a',
-              color: '#10b981',
-              border: '1px solid #10b981',
-              borderRadius: '8px',
-              padding: '10px 16px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>🛡</span> ตรวจสอบ อย.
-          </button>
         </div>
       </div>
 
@@ -157,7 +147,7 @@ export default function StockMonitorPage() {
           { label: 'รายการใกล้หมด',       value: totals.low_stock_count,      color: '#d97706',         accent: '#fffbeb' },
           { label: 'ชิ้นใกล้หมดอายุ 90 วัน', value: totals.expiring_90_units, color: '#dc2626',         accent: '#fef2f2' }
         ].map((card) => (
-          <div key={card.label} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', borderTop: `3px solid ${card.color}` }}>
+          <div key={card.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', borderTop: `3px solid ${card.color}` }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{card.label}</div>
             <div style={{ fontSize: '26px', fontWeight: 800, color: card.color, lineHeight: 1 }}>{card.value.toLocaleString('th-TH')}</div>
           </div>

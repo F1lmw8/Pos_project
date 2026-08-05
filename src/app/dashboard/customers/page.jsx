@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
+import PatientHistoryModal from '../../../components/PatientHistoryModal';
 import Link from 'next/link';
+import { Users, UserPlus, Search, History } from 'lucide-react';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -11,10 +13,18 @@ export default function CustomersPage() {
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
 
+  // History Modal State
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistoryCust, setSelectedHistoryCust] = useState(null);
+
   // Form State
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [idCard, setIdCard] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [medicalConditions, setMedicalConditions] = useState('');
   const [allergies, setAllergies] = useState('');
   const [currentMeds, setCurrentMeds] = useState('');
@@ -60,6 +70,10 @@ export default function CustomersPage() {
           name: name.trim(),
           phone: phone.trim(),
           id_card: idCard.trim(),
+          age: age ? parseInt(age, 10) : null,
+          gender: gender,
+          weight: weight ? parseFloat(weight) : null,
+          height: height ? parseFloat(height) : null,
           medical_conditions: medicalConditions.trim(),
           allergies: allergies.trim(),
           current_medications: currentMeds.trim()
@@ -72,6 +86,10 @@ export default function CustomersPage() {
         setName('');
         setPhone('');
         setIdCard('');
+        setAge('');
+        setGender('');
+        setWeight('');
+        setHeight('');
         setMedicalConditions('');
         setAllergies('');
         setCurrentMeds('');
@@ -91,7 +109,9 @@ export default function CustomersPage() {
         {/* Page Header */}
         <div className="stock-header">
           <div>
-            <h1 className="dashboard-title">👥 ทะเบียนผู้ป่วย & ประวัติแพ้ยา</h1>
+            <h1 className="dashboard-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={24} style={{ color: 'var(--teal-600)' }} /> ทะเบียนผู้ป่วย & ประวัติแพ้ยา
+            </h1>
             <p className="dashboard-subtitle">
               จัดการข้อมูลผู้ป่วย โรคประจำตัว ยาที่ใช้ปัจจุบัน และสกัดกั้นประวัติแพ้ยา
             </p>
@@ -102,7 +122,8 @@ export default function CustomersPage() {
               className="btn btn-primary"
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <span>+ ลงทะเบียนผู้ป่วยใหม่</span>
+              <UserPlus size={16} />
+              <span>ลงทะเบียนผู้ป่วยใหม่</span>
             </button>
           </div>
         </div>
@@ -204,13 +225,24 @@ export default function CustomersPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <Link
-                        href={`/?customer_id=${cust.id}`}
-                        className="btn btn-outline btn-sm"
-                        style={{ fontSize: '11px', padding: '4px 8px' }}
+                      <button
+                        onClick={() => {
+                          setSelectedHistoryCust(cust);
+                          setShowHistoryModal(true);
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 14px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          borderRadius: '8px'
+                        }}
                       >
-                        ไปหน้าขาย POS 🛒
-                      </Link>
+                        <History size={14} /> ประวัติการซื้อยา
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -281,6 +313,66 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                        อายุ (ปี)
+                      </label>
+                      <input
+                        type="number"
+                        className="cash-input"
+                        style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                        placeholder="เช่น 45"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                        เพศ
+                      </label>
+                      <select
+                        className="cash-input"
+                        style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                      >
+                        <option value="">ไม่ระบุ</option>
+                        <option value="ชาย">ชาย</option>
+                        <option value="หญิง">หญิง</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                        น้ำหนัก (กก.)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="cash-input"
+                        style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                        placeholder="เช่น 65.5"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                        ส่วนสูง (ซม.)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="cash-input"
+                        style={{ fontSize: '12px', padding: '6px 8px', height: '34px' }}
+                        placeholder="เช่น 170"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
                       โรคประจำตัว
@@ -340,6 +432,13 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
+
+        <PatientHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          customerId={selectedHistoryCust?.id}
+          customerName={selectedHistoryCust?.name}
+        />
       </div>
     </DashboardLayout>
   );

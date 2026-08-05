@@ -1,18 +1,116 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function ProductDetailModal({ isOpen, onClose, product }) {
+export default function ProductDetailModal({ isOpen, onClose, product, onUpdateSuccess }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Editable Form state
+  const [tradeName, setTradeName] = useState('');
+  const [activeIngredient, setActiveIngredient] = useState('');
+  const [price, setPrice] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [fdaRegNo, setFdaRegNo] = useState('');
+  const [manufacturer, setManufacturer] = useState('');
+  const [drugType, setDrugType] = useState('general');
+  const [barcode, setBarcode] = useState('');
+
+  useEffect(() => {
+    if (product) {
+      setTradeName(product.trade_name || '');
+      setActiveIngredient(product.active_ingredient || '');
+      setPrice(product.price !== undefined ? product.price : '0');
+      setStockQuantity(product.stock_quantity !== undefined ? product.stock_quantity : '0');
+      setFdaRegNo(product.fda_reg_no || '');
+      setManufacturer(product.manufacturer || '');
+      setDrugType(product.drug_type || 'general');
+      setBarcode(product.barcode || '');
+      setIsEditing(false);
+      setError('');
+      setSuccessMsg('');
+    }
+  }, [product, isOpen]);
+
   if (!isOpen || !product) return null;
 
   const classificationMap = {
-    household: { label: 'Household Remedy (HHR)', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
+    household: { label: 'ยาสามัญประจำบ้าน (HHR)', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
     dangerous: { label: 'ยาอันตราย (ข.ย. 11)', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     special_controlled: { label: 'ยาควบคุมพิเศษ (ข.ย. 10)', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     general: { label: 'ทั่วไป (General)', color: '#0284c7', bg: '#eff6ff', border: '#bfdbfe' }
   };
 
-  const currentClass = classificationMap[product.drug_type] || classificationMap.general;
+  const currentClass = classificationMap[drugType] || classificationMap.general;
+
+  // Handle Save Edit
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const productId = product.tmt_id || product.sku;
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trade_name: tradeName,
+          active_ingredient: activeIngredient,
+          price: parseFloat(price) || 0,
+          stock_quantity: parseInt(stockQuantity, 10) || 0,
+          fda_reg_no: fdaRegNo,
+          manufacturer: manufacturer,
+          drug_type: drugType,
+          barcode: barcode
+        })
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setSuccessMsg('บันทึกการแก้ไขสินค้าเรียบร้อยแล้ว');
+        setIsEditing(false);
+        if (onUpdateSuccess) onUpdateSuccess();
+      } else {
+        setError(json.error || 'ไม่สามารถบันทึกการแก้ไขได้');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Delete Product
+  const handleDeleteProduct = async () => {
+    if (!confirm(`คุณต้องการลบสินค้า "${product.trade_name}" ออกจากคลังใช่หรือไม่?`)) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const productId = product.tmt_id || product.sku;
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+        method: 'DELETE'
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        if (onUpdateSuccess) onUpdateSuccess();
+        onClose();
+      } else {
+        setError(json.error || 'ไม่สามารถลบสินค้าได้');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการลบสินค้า');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -40,7 +138,9 @@ export default function ProductDetailModal({ isOpen, onClose, product }) {
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>รายละเอียดสินค้า</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+            {isEditing ? '✏️ แก้ไขข้อมูลสินค้า' : 'รายละเอียดสินค้า'}
+          </h2>
           <button
             onClick={onClose}
             style={{
@@ -55,260 +155,308 @@ export default function ProductDetailModal({ isOpen, onClose, product }) {
           </button>
         </div>
 
-        {/* Basic Information Section */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          marginBottom: '24px',
-          backgroundColor: '#0a1411',
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid #162923'
-        }}>
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>ชื่อสินค้า</div>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>{product.trade_name}</div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{product.active_ingredient} ({product.strength || '-'})</div>
+        {/* Notifications */}
+        {error && (
+          <div style={{ backgroundColor: '#7f1d1d', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+            ⚠️ {error}
           </div>
-
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>SKU</div>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: '#10b981', fontFamily: 'monospace' }}>{product.sku || 'P-001'}</div>
+        )}
+        {successMsg && (
+          <div style={{ backgroundColor: '#065f46', border: '1px solid #10b981', color: '#a7f3d0', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+            ✓ {successMsg}
           </div>
+        )}
 
+        {/* MODE 1: EDIT FORM */}
+        {isEditing ? (
+          <form onSubmit={handleSaveEdit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ชื่อการค้า (Trade Name)*</label>
+                <input
+                  type="text"
+                  required
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '14px' }}
+                />
+              </div>
+
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ชื่อตัวยาสามัญ (Active Ingredient)</label>
+                <input
+                  type="text"
+                  value={activeIngredient}
+                  onChange={(e) => setActiveIngredient(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '14px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ราคาขาย (บาท)*</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#10b981', fontWeight: '700', fontSize: '14px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>จำนวนคงเหลือในคลัง*</label>
+                <input
+                  type="number"
+                  required
+                  value={stockQuantity}
+                  onChange={(e) => setStockQuantity(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#38bdf8', fontWeight: '700', fontSize: '14px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>เลขทะเบียน อย.</label>
+                <input
+                  type="text"
+                  value={fdaRegNo}
+                  onChange={(e) => setFdaRegNo(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#ef4444', fontWeight: '700', fontSize: '14px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ประเภทกลุ่มยา</label>
+                <select
+                  value={drugType}
+                  onChange={(e) => setDrugType(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                >
+                  <option value="general">ทั่วไป (General)</option>
+                  <option value="dangerous">ยาอันตราย (ข.ย. 11)</option>
+                  <option value="special_controlled">ยาควบคุมพิเศษ (ข.ย. 10)</option>
+                  <option value="household">ยาสามัญประจำบ้าน (HHR)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ผู้ผลิต / แบรนด์</label>
+                <input
+                  type="text"
+                  value={manufacturer}
+                  onChange={(e) => setManufacturer(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>บาร์โค้ด</label>
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                style={{ backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                ✕ ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+              >
+                {loading ? '⏳ กำลังบันทึก...' : '💾 บันทึกการแก้ไข'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* MODE 2: VIEW DETAILS */
           <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>หมวดหมู่</div>
-            <span style={{
-              display: 'inline-block',
-              backgroundColor: '#10b981',
-              color: '#ffffff',
-              borderRadius: '20px',
-              padding: '2px 10px',
-              fontSize: '11px',
-              fontWeight: '600'
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '24px',
+              backgroundColor: '#0a1411',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #162923'
             }}>
-              {product.dosage_form || 'ยาแผนปัจจุบัน'}
-            </span>
-          </div>
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>ชื่อสินค้า</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>{product.trade_name}</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{product.active_ingredient} ({product.strength || '-'})</div>
+              </div>
 
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>แบรนด์ / ผู้ผลิต</div>
-            <div style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '500' }}>{product.manufacturer || 'Bayer AG'}</div>
-          </div>
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>SKU</div>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#10b981', fontFamily: 'monospace' }}>{product.sku || product.tmt_id || 'P-001'}</div>
+              </div>
 
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>สถานะ</div>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: '#064e3b',
-              color: '#34d399',
-              border: '1px solid #059669',
-              borderRadius: '20px',
-              padding: '2px 10px',
-              fontSize: '11px',
-              fontWeight: '700'
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>หมวดหมู่</div>
+                <span style={{
+                  display: 'inline-block',
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  borderRadius: '20px',
+                  padding: '2px 10px',
+                  fontSize: '11px',
+                  fontWeight: '600'
+                }}>
+                  {product.dosage_form || 'ยาแผนปัจจุบัน'}
+                </span>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>แบรนด์ / ผู้ผลิต</div>
+                <div style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '500' }}>{product.manufacturer || '-'}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>สถานะ</div>
+                <span style={{
+                  display: 'inline-block',
+                  backgroundColor: '#ecfdf5',
+                  color: '#047857',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: '20px',
+                  padding: '2px 10px',
+                  fontSize: '11px',
+                  fontWeight: '600'
+                }}>
+                  ✓ ใช้งาน
+                </span>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>การจำแนกประเภท</div>
+                <span style={{
+                  display: 'inline-block',
+                  backgroundColor: currentClass.bg,
+                  color: currentClass.color,
+                  border: `1px solid ${currentClass.border}`,
+                  borderRadius: '20px',
+                  padding: '2px 10px',
+                  fontSize: '11px',
+                  fontWeight: '600'
+                }}>
+                  {currentClass.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Inventory & Pricing */}
+            <div style={{
+              backgroundColor: '#0a1411',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #162923',
+              marginBottom: '24px'
             }}>
-              ✓ ใช้งาน
-            </span>
-          </div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
+                บรรจุภัณฑ์และราคา
+              </div>
 
-          <div>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>การจำแนกประเภท</div>
-            <span style={{
-              display: 'inline-block',
-              backgroundColor: currentClass.bg,
-              color: currentClass.color,
-              border: `1px solid ${currentClass.border}`,
-              borderRadius: '20px',
-              padding: '2px 10px',
-              fontSize: '11px',
-              fontWeight: '700'
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>ราคาขายหน้าร้าน</div>
+                  <div style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>
+                    ฿{Number(product.price || 0).toFixed(2)}
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>สต็อกคงเหลือ</div>
+                  <div style={{ fontSize: '18px', fontWeight: '800', color: '#38bdf8' }}>
+                    {product.stock_quantity || 0} หน่วย
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>บาร์โค้ด</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', fontFamily: 'monospace' }}>
+                    {product.barcode || '-'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* FDA Reg No Section */}
+            <div style={{
+              backgroundColor: '#0a1411',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #162923',
+              marginBottom: '24px'
             }}>
-              {currentClass.label}
-            </span>
-          </div>
-        </div>
-
-        {/* Packaging & Pricing Section */}
-        <div style={{
-          backgroundColor: '#0a1411',
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid #162923',
-          marginBottom: '20px'
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
-            บรรจุภัณฑ์และราคา
-          </h3>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '14px' }}>
-            <thead>
-              <tr style={{ color: '#94a3b8', textAlign: 'left', borderBottom: '1px solid #162923' }}>
-                <th style={{ padding: '8px 4px' }}>บรรจุภัณฑ์</th>
-                <th style={{ padding: '8px 4px' }}>จำนวน</th>
-                <th style={{ padding: '8px 4px' }}>บาร์โค้ด</th>
-                <th style={{ padding: '8px 4px' }}>รหัสผู้ผลิต</th>
-                <th style={{ padding: '8px 4px', textAlign: 'right' }}>ค่าเริ่มต้น</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: '1px solid #162923' }}>
-                <td style={{ padding: '10px 4px', fontWeight: '600', color: '#ffffff' }}>∨ {product.unit || 'หน่วย'}</td>
-                <td style={{ padding: '10px 4px' }}>1</td>
-                <td style={{ padding: '10px 4px', fontFamily: 'monospace', color: '#38bdf8' }}>{product.barcode || '4058172636455'}</td>
-                <td style={{ padding: '10px 4px', color: '#64748b' }}>-</td>
-                <td style={{ padding: '10px 4px', textAlign: 'right', color: '#10b981', fontWeight: '700' }}>ค่าเริ่มต้น</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Pricing Tiers */}
-          <div style={{ backgroundColor: '#070e0c', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', marginBottom: '8px' }}>ราคาตามประเภทลูกค้า</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#4ade80' }}>🟢 ลูกค้าท้องถิ่น</span>
-                <span style={{ fontWeight: '700', color: '#ffffff' }}>฿{Number(product.price || 0).toFixed(2)}</span>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', marginBottom: '8px' }}>
+                ทะเบียน อย.
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#f472b6' }}>🩷 ผู้พำนักชาวต่างชาติ</span>
-                <span style={{ fontWeight: '700', color: '#ffffff' }}>฿{Number(product.price || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#60a5fa' }}>🔵 นักท่องเที่ยวประหยัด</span>
-                <span style={{ fontWeight: '700', color: '#ffffff' }}>฿{Number(product.price || 0).toFixed(2)}</span>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#ef4444' }}>
+                {product.fda_reg_no || '-'}
               </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '24px', fontSize: '12px', color: '#94a3b8' }}>
-            <div>อัตราภาษีมูลค่าเพิ่ม: <strong style={{ color: '#ffffff' }}>7%</strong></div>
-            <div>ต้นทุน: <strong style={{ color: '#ffffff' }}>฿{Number((product.price || 0) * 0.65).toFixed(2)}</strong></div>
-          </div>
-        </div>
-
-        {/* Stock Settings Section */}
-        <div style={{
-          backgroundColor: '#0a1411',
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid #162923',
-          marginBottom: '20px'
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
-            การตั้งค่าสต็อก
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
-            <div style={{ backgroundColor: '#070e0c', padding: '10px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px' }}>สต็อกคงเหลือ</div>
-              <div style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>{product.stock_quantity || product.sellable_quantity || 0}</div>
-            </div>
-            <div style={{ backgroundColor: '#070e0c', padding: '10px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px' }}>สต็อกขั้นต่ำ</div>
-              <div style={{ fontSize: '18px', fontWeight: '800', color: '#f59e0b' }}>10</div>
-            </div>
-            <div style={{ backgroundColor: '#070e0c', padding: '10px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px' }}>ระดับสั่งซื้อใหม่</div>
-              <div style={{ fontSize: '18px', fontWeight: '800', color: '#3b82f6' }}>15</div>
-            </div>
-            <div style={{ backgroundColor: '#070e0c', padding: '10px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px' }}>สต็อกสูงสุด</div>
-              <div style={{ fontSize: '18px', fontWeight: '800', color: '#a855f7' }}>200</div>
-            </div>
-          </div>
-        </div>
-
-        {/* FDA Registration Section */}
-        <div style={{
-          backgroundColor: '#0a1411',
-          padding: '16px',
-          borderRadius: '12px',
-          border: '1px solid #162923',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
-            ทะเบียน อย.
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>เลขทะเบียน อย.</div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#ef4444' }}>{product.fda_reg_no || 'ไม่ระบุ'}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>สถานะการตรวจสอบ</div>
-              <div style={{ fontSize: '12px', color: product.fda_status === 'verified' ? '#10b981' : '#94a3b8', fontWeight: '600' }}>
-                {product.fda_status === 'verified' ? '✓ ตรวจสอบแล้ว' : 'ⓘ ไม่ได้กำหนด'}
-              </div>
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={onClose}
+                style={{
+                  backgroundColor: '#1e293b',
+                  color: '#e2e8f0',
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                ปิด
+              </button>
+              <button
+                onClick={handleDeleteProduct}
+                disabled={loading}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                🗑 ลบสินค้า
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 18px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                ✎ แก้ไขสินค้า
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button
-            onClick={onClose}
-            style={{
-              backgroundColor: '#1e293b',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            ปิด
-          </button>
-          <button
-            onClick={() => alert(`ดูประวัติการเคลื่อนไหวสต็อกของ ${product.trade_name}`)}
-            style={{
-              backgroundColor: '#0f172a',
-              color: '#e2e8f0',
-              border: '1px solid #334155',
-              borderRadius: '8px',
-              padding: '10px 16px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            ⚡ ดูการเคลื่อนไหว
-          </button>
-          <button
-            onClick={() => alert('ยืนยันลบรายการสินค้า?')}
-            style={{
-              backgroundColor: '#ef4444',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 16px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            🗑 ลบ
-          </button>
-          <button
-            onClick={() => alert(`แก้ไขสินค้า ${product.trade_name}`)}
-            style={{
-              backgroundColor: '#10b981',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            ✎ แก้ไขสินค้า
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

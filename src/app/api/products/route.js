@@ -143,3 +143,92 @@ export async function GET(request) {
     );
   }
 }
+
+// POST create new drug in database
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const {
+      tmt_id,
+      trade_name,
+      active_ingredient,
+      unit,
+      strength,
+      dosage_form,
+      drug_type,
+      fda_reg_no,
+      fda_status,
+      sku,
+      barcode,
+      manufacturer,
+      price,
+      stock_quantity
+    } = body;
+
+    const drugId = tmt_id || sku || `DRUG-${Date.now()}`;
+    const drugSku = sku || `SKU-${Date.now()}`;
+
+    // 1. Insert into drugs table
+    await pool.query(`
+      INSERT INTO drugs (
+        tmt_id, trade_name, active_ingredient, unit, strength, dosage_form,
+        drug_type, fda_reg_no, fda_status, sku, barcode, manufacturer
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ON CONFLICT (tmt_id) DO UPDATE
+      SET trade_name = EXCLUDED.trade_name,
+          active_ingredient = EXCLUDED.active_ingredient,
+          fda_reg_no = EXCLUDED.fda_reg_no,
+          manufacturer = EXCLUDED.manufacturer
+    `, [
+      drugId,
+      trade_name || 'ยาทั่วไป',
+      active_ingredient || trade_name || '',
+      unit || 'กล่อง',
+      strength || '',
+      dosage_form || 'tablet',
+      drug_type || 'general',
+      fda_reg_no || '',
+      fda_status || 'verified',
+      drugSku,
+      barcode || '',
+      manufacturer || ''
+    ]);
+
+    // 2. Insert into inventory table
+    const numPrice = price ? parseFloat(price) : 0.00;
+    const numStock = stock_quantity ? parseInt(stock_quantity, 10) : 0;
+
+    await pool.query(`
+      INSERT INTO inventory (drug_id, stock_quantity, price)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (drug_id) DO UPDATE
+      SET price = EXCLUDED.price,
+          stock_quantity = EXCLUDED.stock_quantity,
+          updated_at = CURRENT_TIMESTAMP
+    `, [drugId, numStock, numPrice]);
+
+    // Fetch created product
+    const createdRes = await pool.query(`
+      SELECT d.*, 
+             COALESCE(i.stock_quantity, 0) AS stock_quantity, 
+             COALESCE(i.price, 0.00) AS price
+      FROM drugs d
+      LEFT JOIN inventory i ON d.tmt_id = i.drug_id
+      WHERE d.tmt_id = $1
+    `, [drugId]);
+
+    return NextResponse.json({
+      success: true,
+      message: 'เพิ่มสินค้าลงคลังเรียบร้อยแล้ว',
+      data: createdRes.rows[0]
+    });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create product', message: error.message },
+      { status: 500 }
+    );
+  }
+}
+

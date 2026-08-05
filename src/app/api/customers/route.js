@@ -9,7 +9,7 @@ export async function GET(request) {
     let result;
     if (!q) {
       result = await pool.query(`
-        SELECT id, name, id_card, phone, allergies, medical_conditions, current_medications, created_at
+        SELECT id, name, id_card, phone, age, gender, weight, height, allergies, medical_conditions, current_medications, created_at
         FROM customers
         ORDER BY created_at DESC
         LIMIT 50
@@ -17,7 +17,7 @@ export async function GET(request) {
     } else {
       result = await pool.query(
         `
-        SELECT id, name, id_card, phone, allergies, medical_conditions, current_medications, created_at
+        SELECT id, name, id_card, phone, age, gender, weight, height, allergies, medical_conditions, current_medications, created_at
         FROM customers
         WHERE LOWER(name) LIKE $1 OR phone LIKE $1 OR id_card LIKE $1
         ORDER BY name ASC
@@ -43,7 +43,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, id_card, phone, allergies, medical_conditions, current_medications } = body;
+    const { name, id_card, phone, age, gender, weight, height, allergies, medical_conditions, current_medications } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -58,13 +58,17 @@ export async function POST(request) {
       ? allergies.split(',').map((s) => s.trim()).filter(Boolean)
       : [];
 
+    const numAge = age ? parseInt(age, 10) : null;
+    const numWeight = weight ? parseFloat(weight) : null;
+    const numHeight = height ? parseFloat(height) : null;
+
     const result = await pool.query(
       `
-      INSERT INTO customers (name, id_card, phone, allergies, medical_conditions, current_medications)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, id_card, phone, allergies, medical_conditions, current_medications, created_at
+      INSERT INTO customers (name, id_card, phone, age, gender, weight, height, allergies, medical_conditions, current_medications)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, name, id_card, phone, age, gender, weight, height, allergies, medical_conditions, current_medications, created_at
     `,
-      [name, id_card || '', phone || '', allergiesArr, medical_conditions || '', current_medications || '']
+      [name, id_card || '', phone || '', numAge, gender || '', numWeight, numHeight, allergiesArr, medical_conditions || '', current_medications || '']
     );
 
     return NextResponse.json({

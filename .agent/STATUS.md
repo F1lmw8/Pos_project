@@ -1,28 +1,26 @@
 # Agent Status
 
-Last updated: 2026-08-03
+Last updated: 2026-08-05
 
 ## Current State
 
 - Repository path: `/Users/filmw8/project/POS_project`
 - App: Next.js 15 + React 19 pharmacy/POS and RDU drug information project named `rdu-app`.
 - Branch: `film`
-- Clean build status: `npm run build` passed cleanly (20 routes compiled).
+- Patient History Modal & Action Button Fixes: Fixed curved top corners of `PatientHistoryModal.jsx` (`borderTopLeftRadius: 18px`, `borderTopRightRadius: 18px`), integrated dynamic theme variables, upgraded table history button to high-contrast `btn-primary` styling with Lucide `<History />` icon, and replaced all emojis with Lucide React vector icons.
 
 ## Recent Work
 
-- Integrated live **FDA CKAN Datastore API (`/api/fda/lookup`)** connecting directly to `catalog.fda.moph.go.th` for querying real-time FDA drug manufacturer licenses (ผย1 ยาแผนปัจจุบัน & ผยบ ยาโบราณ).
-- Updated core drug dataset to official **TMT Release 2026-07-20 (`TMTRF20260720`)** from `/Users/filmw8/Downloads/TMTRF20260720`, updating 34,335 active drug records with real manufacturer names and standardized TMT codes in `src/data/drugs.json`.
-- Updated database schema (`db/schema.sql` and `db/seed.cjs`) to support `sku`, `barcode` (EAN-13), `manufacturer`, and `fda_status`.
-- Extended Products API (`src/app/api/products/route.js`) and Inventory Stock API (`src/app/api/dashboard/inventory-stock/route.js`) to query and match `barcode`, `sku`, and `fda_reg_no`.
-- Built 3-Tab Add Product Modal (`src/components/AddProductModal.jsx`) with live "🔍 ตรวจกับ อย. สด" button.
-- Built Product Detail Modal (`src/components/ProductDetailModal.jsx`) matching reference UI.
-- Created dedicated Tax & FDA Reports module (`src/app/dashboard/fda-tax-reports` & `src/app/api/dashboard/tax-fda-reports`).
+- **Fixed Modal Header & Curved Top Corners (`src/components/PatientHistoryModal.jsx`)**:
+  - Matched top header radius with outer modal card (`borderTopLeftRadius: 18px`, `borderTopRightRadius: 18px`), eliminating sharp rectangular corners and dark color mismatches.
+  - Replaced hardcoded colors with theme variables (`var(--bg-card)`, `var(--bg-surface)`, `var(--text-primary)`, `var(--text-secondary)`).
+  - Replaced emojis with Lucide vector icons (`History`, `User`, `Phone`, `CreditCard`, `AlertTriangle`, `Activity`, `ShoppingBag`, `Pill`, `X`).
+- **Upgraded Patient History Action Button (`src/app/dashboard/customers/page.jsx`)**:
+  - Replaced dark hardcoded button with crisp `btn-primary btn-sm` button featuring Lucide `<History size={14} />` icon.
 
 ## Verification
 
-- Tested Live FDA API endpoint (`/api/fda/lookup`) returning real-time response from อย. (e.g. บริษัท มิลลิเมด บีเอฟเอส จำกัด, บริษัท แคนน์ดู ฟาร์ม่า จำกัด).
-- Ran `npm run build` (21/21 static and dynamic routes compiled cleanly with zero errors).
+- `curl -s "http://127.0.0.1:3000/dashboard/customers"` returned HTTP status 200.
 
 ## Next Agent Start Here
 

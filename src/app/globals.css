@@ -1,48 +1,49 @@
 /* ─────────────────────────────────────────────────
    DESIGN TOKENS — Minimal, Modern Pharmacy POS
 ───────────────────────────────────────────────── */
-:root {
-  --font-sans: 'Inter', 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+:root, [data-theme="dark"] {
+  --font-sans: 'Inter', 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Neutral background palette */
-  --bg-app:       #f7f8fa;
-  --bg-card:      #ffffff;
-  --bg-surface:   #f1f3f5;
-  --bg-muted:     #f8f9fa;
+  /* Luxurious Soft Eye-Friendly Dark Palette */
+  --bg-app:       #080f0d;  /* Deep rich dark background */
+  --bg-card:      #101b17;  /* Soft elevated card background */
+  --bg-surface:   #162620;  /* Input & surface background */
+  --bg-muted:     #1c3129;  /* Hover / muted background */
 
   /* Borders */
-  --border:       #e5e7eb;
-  --border-focus: #0d9488;
+  --border:       #1d3b31;  /* Subtle dark emerald border */
+  --border-focus: #10b981;  /* Emerald glow focus */
 
   /* Text */
-  --text-primary:   #111827;
-  --text-secondary: #4b5563;
-  --text-muted:     #9ca3af;
-  --text-inverse:   #ffffff;
+  --text-primary:   #f1f5f9;  /* Soft crisp text */
+  --text-main:      #f1f5f9;  /* Alias for main text */
+  --text-secondary: #94a3b8;  /* Soft slate text */
+  --text-muted:     #64748b;  /* Muted text */
+  --text-inverse:   #080f0d;
 
   /* Brand colors */
-  --teal-50:    #f0fdfa;
-  --teal-100:   #ccfbf1;
-  --teal-500:   #14b8a6;
-  --teal-600:   #0d9488;
-  --teal-700:   #0f766e;
+  --teal-50:    #064e3b;
+  --teal-100:   #065f46;
+  --teal-500:   #10b981;
+  --teal-600:   #10b981;
+  --teal-700:   #34d399;
 
-  --blue-500:   #3b82f6;
-  --blue-600:   #2563eb;
+  --blue-500:   #38bdf8;
+  --blue-600:   #0284c7;
 
   /* Semantic */
-  --color-primary:   #0d9488;
-  --color-primary-hover: #0f766e;
-  --color-success:   #10b981;
-  --color-warning:   #f59e0b;
-  --color-danger:    #ef4444;
-  --color-purple:    #8b5cf6;
+  --color-primary:       #10b981;
+  --color-primary-hover: #059669;
+  --color-success:       #10b981;
+  --color-warning:       #f59e0b;
+  --color-danger:        #ef4444;
+  --color-purple:        #a855f7;
 
-  /* Shadows — very subtle */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.7);
 
   /* Border Radius */
   --radius-sm:   6px;
@@ -53,6 +54,49 @@
 
   /* Transitions */
   --ease-default: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+  /* Soft Eye-Friendly Warm Light Palette */
+  --bg-app:       #f4f6f8;  /* Soft warm off-white background */
+  --bg-card:      #ffffff;  /* Pure clean white card */
+  --bg-surface:   #e9ecef;  /* Input & surface background */
+  --bg-muted:     #f1f3f5;  /* Hover / muted background */
+
+  /* Borders */
+  --border:       #cbd5e1;  /* Soft border */
+  --border-focus: #059669;  /* Emerald focus */
+
+  /* Text */
+  --text-primary:   #0f172a;  /* Deep slate text */
+  --text-main:      #0f172a;  /* Alias for main text */
+  --text-secondary: #475569;  /* Slate text */
+  --text-muted:     #64748b;  /* Muted text */
+  --text-inverse:   #ffffff;
+
+  /* Brand colors */
+  --teal-50:    #ecfdf5;
+  --teal-100:   #d1fae5;
+  --teal-500:   #10b981;
+  --teal-600:   #059669;
+  --teal-700:   #047857;
+
+  --blue-500:   #0284c7;
+  --blue-600:   #0369a1;
+
+  /* Semantic */
+  --color-primary:       #059669;
+  --color-primary-hover: #047857;
+  --color-success:       #10b981;
+  --color-warning:       #d97706;
+  --color-danger:        #dc2626;
+  --color-purple:        #7e22ce;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 /* ─────────────────────────────────────────────────
@@ -398,9 +442,9 @@ body {
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
-.stock-badge.in-stock  { background: #f0fdf4; color: #16a34a; }
-.stock-badge.low-stock { background: #fffbeb; color: #d97706; }
-.stock-badge.no-stock  { background: #fef2f2; color: #dc2626; }
+.stock-badge.in-stock  { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
+.stock-badge.low-stock { background: #451a03; color: #fde68a; border: 1px solid #b45309; }
+.stock-badge.no-stock  { background: #450a0a; color: #fca5a5; border: 1px solid #b91c1c; }
 
 .card-body {
   flex: 1;
@@ -410,8 +454,8 @@ body {
 }
 
 .drug-title {
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1.35;
   letter-spacing: -0.1px;
@@ -424,9 +468,9 @@ body {
 }
 
 .drug-tag {
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   color: var(--text-secondary);
@@ -434,14 +478,14 @@ body {
 }
 
 .drug-desc {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 3px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .card-footer {
@@ -862,7 +906,7 @@ body {
   justify-content: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #ffffff;
+  background: #e2e8f0;
 }
 .promptpay-qr-image { width: 88px; height: 88px; display: block; }
 
@@ -891,11 +935,13 @@ body {
 }
 
 .modal-box {
-  background: #ffffff;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   width: 100%;
   max-width: 400px;
   border-radius: var(--radius-xl);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1012,12 +1058,13 @@ body {
 }
 
 .receipt-box {
-  background: #ffffff;
-  color: #1f2937;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   width: 100%;
   max-width: 360px;
   border-radius: var(--radius-xl);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1027,8 +1074,8 @@ body {
 .receipt-header {
   text-align: center;
   padding: 24px 24px 16px;
-  border-bottom: 1px dashed #d1d5db;
-  background: #fafafa;
+  border-bottom: 1px dashed var(--border);
+  background: var(--bg-surface);
 }
 
 .receipt-logo { font-size: 26px; margin-bottom: 6px; }
@@ -1036,7 +1083,7 @@ body {
 .receipt-shop-name {
   font-weight: 800;
   font-size: 17px;
-  color: #111827;
+  color: var(--text-primary);
   letter-spacing: 0.5px;
 }
 
@@ -1151,8 +1198,13 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 18px;
+  padding: 18px;
   border-bottom: 1px solid var(--border);
+  transition: background var(--ease-default);
+}
+
+.sidebar-brand:hover {
+  background: var(--bg-muted);
 }
 
 .sidebar-brand-icon {
@@ -1251,33 +1303,41 @@ body {
 }
 
 /* Dashboard Page Header */
-.page-header {
+.page-header,
+.stock-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
+.page-title,
+.dashboard-title {
+  font-size: 22px;
+  font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.3px;
+  line-height: 1.3;
+  margin-bottom: 4px;
 }
 
-.page-subtitle {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin-top: 3px;
+.page-subtitle,
+.dashboard-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
 }
 
-.page-controls {
+.page-controls,
+.header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  padding-top: 2px;
 }
 
 /* ─────────────────────────────────────────────────
@@ -1909,16 +1969,18 @@ body {
     margin: 10mm 12mm;
   }
 
-  body, html {
+  body, html, [data-theme="dark"], [data-theme="light"], div, section, main, table, tr, td, th {
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #000000 !important;
     font-family: 'Sarabun', -apple-system, sans-serif !important;
-    font-size: 11pt !important;
+    font-size: 10pt !important;
     line-height: 1.4 !important;
     margin: 0 !important;
     padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-shadow: none !important;
   }
 
   /* Hide UI elements on print */
@@ -1931,24 +1993,34 @@ body {
   .header-actions,
   .search-container,
   .filter-scroll,
+  .modal-backdrop,
   button,
   input,
   select {
     display: none !important;
   }
 
-  /* Expand printable container to full width */
+  /* Expand printable container to full width with pure white background */
   .dashboard-shell,
   .dashboard-content,
-  .dashboard-page-container {
+  .dashboard-page-container,
+  .print-sheet {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .print-sheet h2,
+  .print-sheet div,
+  .print-sheet span {
+    color: #000000 !important;
   }
 
   /* Printable Table Formatting */
@@ -1960,7 +2032,7 @@ body {
     width: 100% !important;
     border-collapse: collapse !important;
     margin-top: 15px !important;
-    font-size: 10pt !important;
+    font-size: 9.5pt !important;
   }
 
   .data-table th,
@@ -1969,6 +2041,7 @@ body {
     padding: 6px 8px !important;
     color: #000000 !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
   }
 
   .data-table th {
@@ -1987,7 +2060,7 @@ body {
     justify-content: space-between !important;
     margin-top: 40px !important;
     padding-top: 20px !important;
-    font-size: 11pt !important;
+    font-size: 10.5pt !important;
     page-break-inside: avoid !important;
   }
 }
