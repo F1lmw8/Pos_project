@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ExcelImportModal from '../../../components/ExcelImportModal';
-import { Download, Upload, Plus, Trash2, FileText, CheckCircle2 } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileText, CheckCircle2, Barcode, Scan, Calculator } from 'lucide-react';
 import { downloadStockTemplate } from '../../../utils/excelStockHelper';
 
 export default function StockInPage() {
@@ -15,6 +15,10 @@ export default function StockInPage() {
   const [supplierName, setSupplierName] = useState('บริษัท ยาอินไทย จำกัด');
   const [receiptNo, setReceiptNo] = useState('');
   const [receiptDate, setReceiptDate] = useState('');
+
+  // Barcode Instant Scanner State
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scanSuccessMsg, setScanSuccessMsg] = useState('');
 
   // Drug Item Add Form States
   const [stockSearchQuery, setStockSearchQuery] = useState('');
@@ -63,6 +67,31 @@ export default function StockInPage() {
     }
   };
 
+  // Instant Barcode Scan Handler
+  const handleBarcodeKeyDown = async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = barcodeInput.trim();
+      if (!code) return;
+
+      try {
+        const response = await fetch(`/api/products?q=${encodeURIComponent(code)}`);
+        const result = await response.json();
+        if (result.success && result.data.length > 0) {
+          const matchedDrug = result.data[0];
+          selectSuggestion(matchedDrug);
+          setScanSuccessMsg(`✓ สแกนบาร์โค้ดพบสินค้า: ${matchedDrug.trade_name}`);
+          setBarcodeInput('');
+          setTimeout(() => setScanSuccessMsg(''), 3500);
+        } else {
+          setItemError(`ไม่พบสินค้าสำหรับบาร์โค้ด / รหัส "${code}"`);
+        }
+      } catch (err) {
+        console.error('Barcode scan error:', err);
+      }
+    }
+  };
+
   // Drug search suggestion
   const handleStockSearchChange = async (val) => {
     setStockSearchQuery(val);
@@ -104,7 +133,7 @@ export default function StockInPage() {
     e.preventDefault();
     setItemError('');
 
-    if (!selectedStockDrug) { setItemError('กรุณาเลือกตัวยาจากระบบ'); return; }
+    if (!selectedStockDrug) { setItemError('กรุณาเลือกตัวยาจากระบบหรือสแกนบาร์โค้ด'); return; }
     if (!lotNumber || !stockQty || !stockCost || !stockPrice || !stockExpiry) {
       setItemError('กรุณากรอกข้อมูล ล็อต, จำนวน, ต้นทุน, ราคาขาย และวันหมดอายุให้ครบถ้วน');
       return;
@@ -286,19 +315,68 @@ export default function StockInPage() {
                   <FileText size={18} />
                 </div>
                 <div>
-                  <strong>เอกสารใบรับสินค้าเข้าคลัง</strong>
+                  <strong style={{ fontSize: '16px' }}>เอกสารใบรับสินค้าเข้าคลัง</strong>
                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>ดูแลสินค้าทุกชิ้นให้มีราคาถูกต้อง ติดตามได้ และพร้อมขาย</div>
                 </div>
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--teal-600)', fontFamily: 'monospace', backgroundColor: 'var(--teal-50)', padding: '4px 10px', borderRadius: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--teal-600)', fontFamily: 'monospace', backgroundColor: 'var(--teal-50)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--teal-100)' }}>
                 {receiptNo}
               </span>
             </div>
 
+            {/* Instant Barcode Scanner Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              backgroundColor: 'var(--teal-50)',
+              border: '1.5px dashed var(--teal-600)',
+              borderRadius: '14px',
+              padding: '12px 16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: '#059669', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Barcode size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--teal-900)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>สแกนบาร์โค้ดด่วน (Instant Barcode Scanner)</span>
+                  <Scan size={14} color="var(--teal-600)" />
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--teal-700)' }}>
+                  ยิงบาร์โค้ด 1D/EAN ที่กล่องยาเพื่อเลือกสินค้าเข้าใบรับโดยอัตโนมัติ
+                </div>
+              </div>
+              <input
+                type="text"
+                placeholder="ยิงบาร์โค้ดสแกนที่นี่..."
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={handleBarcodeKeyDown}
+                style={{
+                  width: '210px',
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid var(--teal-600)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {scanSuccessMsg && (
+              <div style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '10px 14px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, marginBottom: '16px' }}>
+                {scanSuccessMsg}
+              </div>
+            )}
+
             {/* Goods Receipt Meta Fields */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
               <div>
-                <label className="form-label">ผู้ส่งมอบ / ซัพพลายเออร์ (Supplier)</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>ผู้ส่งมอบ / ซัพพลายเออร์ (Supplier)</label>
                 <input
                   type="text"
                   className="form-input"
@@ -308,7 +386,7 @@ export default function StockInPage() {
                 />
               </div>
               <div>
-                <label className="form-label">วันที่รับสินค้า (Receipt Date)</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>วันที่รับสินค้า (Receipt Date)</label>
                 <input
                   type="date"
                   className="form-input"
@@ -321,14 +399,14 @@ export default function StockInPage() {
             <hr style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '16px 0' }} />
 
             {/* Drug Addition Form */}
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Plus size={16} color="var(--teal-600)" /> เพิ่มรายการยาเข้าใบรับสินค้า:
             </div>
 
             <form onSubmit={handleAddReceiptItem} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Search Drug */}
               <div style={{ position: 'relative' }}>
-                <label className="form-label">ค้นหาเวชภัณฑ์ TMT / บาร์โค้ด</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>ค้นหาเวชภัณฑ์ TMT / บาร์โค้ด</label>
                 <input
                   type="text"
                   className="form-input"
@@ -358,7 +436,7 @@ export default function StockInPage() {
 
               {/* Selected drug chip */}
               {selectedStockDrug && (
-                <div style={{ background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <strong style={{ color: 'var(--teal-700)' }}>{selectedStockDrug.trade_name}</strong>
                     {selectedStockDrug.strength && <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '11px' }}>{selectedStockDrug.strength}</span>}
@@ -408,30 +486,30 @@ export default function StockInPage() {
             </form>
           </div>
 
-          {/* Receiving Items Table */}
-          <div className="dash-card">
-            <div className="dash-card-title">
+          {/* Receiving Items Table Card */}
+          <div className="dash-card" style={{ padding: '22px', borderRadius: '16px' }}>
+            <div className="dash-card-title" style={{ marginBottom: '16px' }}>
               <div className="dash-card-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>📋</div>
-              รายการยาในใบรับสินค้า ({receiptItems.length} รายการ)
+              <span style={{ fontSize: '15px', fontWeight: 800 }}>รายการยาในใบรับสินค้า ({receiptItems.length} รายการ)</span>
             </div>
 
             {receiptItems.length === 0 ? (
-              <div className="empty-state" style={{ padding: '30px', textAlign: 'center' }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>📦</div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>ยังไม่มีรายการยาในใบรับสินค้า กรุณาค้นหาและเพิ่มรายการยาด้านบน</div>
+              <div className="empty-state" style={{ padding: '36px', textAlign: 'center', backgroundColor: 'var(--bg-surface)', borderRadius: '14px', border: '1px dashed var(--border)' }}>
+                <div style={{ fontSize: '36px', marginBottom: '8px' }}>📦</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>ยังไม่มีรายการยาในใบรับสินค้า กรุณาค้นหา สแกนบาร์โค้ด หรือเพิ่มรายการยาด้านบน</div>
               </div>
             ) : (
-              <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '10px' }}>
-                <table className="data-table" style={{ fontSize: '12.5px' }}>
-                  <thead>
+              <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                <table className="data-table" style={{ fontSize: '12.5px', margin: 0 }}>
+                  <thead style={{ backgroundColor: 'var(--bg-surface)' }}>
                     <tr>
-                      <th>#</th>
-                      <th>รายการยา</th>
-                      <th>เลขล็อต</th>
-                      <th style={{ textAlign: 'center' }}>จำนวน</th>
-                      <th style={{ textAlign: 'right' }}>ต้นทุน/หน่วย</th>
-                      <th style={{ textAlign: 'right' }}>รวมต้นทุน</th>
-                      <th style={{ textAlign: 'center' }}>จัดการ</th>
+                      <th style={{ padding: '12px' }}>#</th>
+                      <th style={{ padding: '12px' }}>รายการยา</th>
+                      <th style={{ padding: '12px' }}>เลขล็อต</th>
+                      <th style={{ textAlign: 'center', padding: '12px' }}>จำนวน</th>
+                      <th style={{ textAlign: 'right', padding: '12px' }}>ต้นทุน/หน่วย</th>
+                      <th style={{ textAlign: 'right', padding: '12px' }}>รวมต้นทุน</th>
+                      <th style={{ textAlign: 'center', padding: '12px' }}>จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -463,30 +541,34 @@ export default function StockInPage() {
               </div>
             )}
 
-            {/* Financial Summary & Tax Breakdown Box (Matching User Prompt Specs) */}
+            {/* Premium Financial Summary & Tax Breakdown Box (Matching User Prompt Specs) */}
             <div style={{
-              backgroundColor: 'var(--bg-surface)',
+              background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-surface) 100%)',
               border: '1px solid var(--border)',
-              borderRadius: '14px',
+              borderRadius: '16px',
               padding: '20px',
-              marginTop: '16px'
+              marginTop: '20px',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                💳 สรุปยอดรวมและภาษีมูลค่าเพิ่ม
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Calculator size={18} color="var(--teal-600)" />
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  สรุปยอดรวมและภาษีมูลค่าเพิ่ม
+                </span>
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                 ระบบคำนวณมูลค่าสินค้า ภาษี และยอดรวมสุทธิจากรายการโดยอัตโนมัติ คุณกรอกเฉพาะส่วนลดและเลือกว่าราคารวมภาษีหรือไม่
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
                 {/* VAT Mode Selector */}
                 <div>
-                  <label className="form-label" style={{ fontWeight: 700 }}>ภาษีมูลค่าเพิ่ม (VAT)</label>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '12px' }}>ภาษีมูลค่าเพิ่ม (VAT)</label>
                   <select
                     value={vatMode}
                     onChange={(e) => setVatMode(e.target.value)}
                     className="form-input"
-                    style={{ fontWeight: 600 }}
+                    style={{ fontWeight: 600, borderRadius: '10px' }}
                   >
                     <option value="included">ราคารวมภาษีแล้ว (VAT Included)</option>
                     <option value="excluded">ราคาไม่รวมภาษี (VAT Excluded +7%)</option>
@@ -496,7 +578,7 @@ export default function StockInPage() {
 
                 {/* Discount Field */}
                 <div>
-                  <label className="form-label" style={{ fontWeight: 700 }}>ส่วนลดท้ายบิล (บาท)</label>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '12px' }}>ส่วนลดท้ายบิล (บาท)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -505,42 +587,57 @@ export default function StockInPage() {
                     value={discountInput}
                     onChange={(e) => setDiscountInput(e.target.value)}
                     min="0"
+                    style={{ borderRadius: '10px' }}
                   />
                 </div>
               </div>
 
-              {/* Exact Financial Rows */}
+              {/* Financial Summary Table Box */}
               <div style={{
-                backgroundColor: 'var(--bg-card)',
+                backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
-                borderRadius: '12px',
+                borderRadius: '14px',
                 padding: '16px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}>
-                  <span>มูลค่าสินค้า:</span>
-                  <strong style={{ fontFamily: 'monospace' }}>฿{financials.subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>มูลค่าสินค้า:</span>
+                  <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
+                    ฿{financials.subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </strong>
                 </div>
 
                 {financials.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#dc2626' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: '#dc2626' }}>
                     <span>ส่วนลดท้ายบิล:</span>
-                    <strong style={{ fontFamily: 'monospace' }}>-฿{financials.discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                    <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
+                      -฿{financials.discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </strong>
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
                   <span>ภาษีมูลค่าเพิ่ม (7%):</span>
-                  <strong style={{ fontFamily: 'monospace' }}>฿{financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
+                    ฿{financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </strong>
                 </div>
 
                 <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '4px 0' }} />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>จำนวนเงินรวมทั้งสิ้น:</span>
-                  <span style={{ fontSize: '24px', fontWeight: 900, color: '#10b981', fontFamily: 'monospace' }}>
+                <div style={{
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: 'var(--teal-50)',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--teal-100)'
+                }}>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--teal-900)' }}>จำนวนเงินรวมทั้งสิ้น:</span>
+                  <span style={{ fontSize: '26px', fontWeight: 900, color: '#059669', fontFamily: 'monospace' }}>
                     ฿{financials.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -558,13 +655,15 @@ export default function StockInPage() {
               className="checkout-submit-btn"
               style={{
                 height: '52px',
-                marginTop: '16px',
+                marginTop: '18px',
                 fontSize: '16px',
                 fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                borderRadius: '12px',
+                boxShadow: 'var(--shadow-md)'
               }}
             >
               <CheckCircle2 size={20} />
