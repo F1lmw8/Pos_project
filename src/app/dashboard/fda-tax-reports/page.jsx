@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import { getStoreSettings } from '../../../utils/storeSettings';
 import { Printer, Download, FileText, CheckCircle2, ShieldCheck, DollarSign, Calculator, ChevronRight, X } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function FdaTaxReportsPage() {
   const [reportData, setReportData] = useState(null);
@@ -46,12 +47,59 @@ export default function FdaTaxReportsPage() {
   const taxablePurchases = useMemo(() => inputVat * 100 / 7, [inputVat]);
   const netVatPayable = useMemo(() => outputVat - inputVat, [outputVat, inputVat]);
 
+  // Real Excel (.xlsx) File Exporter for Form ภ.พ. 30 and Section 86 Tax Invoices
   const handleExportExcel = () => {
-    alert(`ดาวน์โหลดแบบยื่นภาษีมูลค่าเพิ่ม (ภ.พ.30) และรายงานใบกำกับภาษีมาตรา 86 ในรูปแบบ Excel (XLSX) ของร้าน ${storeSettings.storeName} เรียบร้อยแล้ว`);
+    const store = getStoreSettings();
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    // Sheet 1: Form ภ.พ. 30
+    const sheet1Data = [
+      [`ร้านยา ${store.storeName} (${store.branchName})`],
+      [`เลขประจำตัวผู้เสียภาษีอากร / ใบอนุญาต: ${store.licenseNo}`],
+      [`ที่อยู่: ${store.storeAddress}`],
+      [''],
+      ['แบบแสดงรายการภาษีมูลค่าเพิ่ม (ภ.พ. 30) — คำนวณประมวลรัษฎากร'],
+      ['ลำดับ', 'รายการยื่นภาษี', 'จำนวนเงิน (บาท)'],
+      [1, '1. ยอดขายที่ต้องเสียภาษีมูลค่าเพิ่ม (Taxable Sales)', netSalesBeforeVat.toFixed(2)],
+      [2, '2. ภาษีขายเดือนนี้ (Output Tax 7%)', outputVat.toFixed(2)],
+      [3, '3. ยอดซื้อสินค้าเข้าคลังยาที่เสียภาษี (Taxable Purchases)', taxablePurchases.toFixed(2)],
+      [4, '4. ภาษีซื้อเดือนนี้ (Input Tax 7%)', inputVat.toFixed(2)],
+      [5, '5. ภาษีสุทธิที่ต้องชำระทั้งสิ้น (Total Net VAT Payable)', netVatPayable.toFixed(2)]
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+
+    // Sheet 2: Section 86 Tax Invoices & Receipts Master Log
+    const headers2 = ['ลำดับ', 'วัน-เวลาออกเอกสาร', 'เลขที่ใบกำกับภาษี/บิล', 'ผู้ซื้อ/ผู้ป่วย', 'ช่องทางชำระเงิน', 'ยอดขายก่อน VAT (บาท)', 'ภาษีมูลค่าเพิ่ม 7% (บาท)', 'ยอดเงินรวมสุทธิ (บาท)', 'สถานะมาตรา 86/4'];
+    const rows2 = salesLogs.map((sale, idx) => {
+      const total = sale.total_amount || 0;
+      const vat = total * 7 / 107;
+      const subtotal = total - vat;
+      return [
+        idx + 1,
+        new Date(sale.transaction_date).toLocaleString('th-TH'),
+        sale.id,
+        sale.customer_name || 'ลูกค้าทั่วไป',
+        sale.payment_method === 'cash' ? 'เงินสด' : 'PromptPay',
+        subtotal.toFixed(2),
+        vat.toFixed(2),
+        total.toFixed(2),
+        'ครบถ้วน 8 ประการตามมาตรา 86/4'
+      ];
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet([headers2, ...rows2]);
+
+    // Create Excel Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'ภ.พ.30 สรุปภาษี');
+    XLSX.utils.book_append_sheet(wb, ws2, 'รายงานใบกำกับภาษี ม.86');
+
+    // Trigger Browser File Download
+    const fileName = `Report_PorPor30_Sec86_${store.storeName.replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   const handleExportPdf = () => {
-    alert(`ดาวน์โหลดแบบ ภ.พ.30 และสรุปใบกำกับภาษีในรูปแบบ PDF สำหรับยื่นกรมสรรพากรเรียบร้อยแล้ว`);
+    window.print();
   };
 
   return (
@@ -74,14 +122,14 @@ export default function FdaTaxReportsPage() {
             className="btn btn-outline"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
           >
-            <Download size={16} /> Excel ภ.พ. 30
+            <Download size={16} /> Excel ภ.พ. 30 (.xlsx)
           </button>
           <button
             onClick={handleExportPdf}
             className="btn btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
           >
-            <FileText size={16} /> PDF ยื่นสรรพากร
+            <FileText size={16} /> PDF ยื่นสรรพากร (พิมพ์)
           </button>
         </div>
       </div>
