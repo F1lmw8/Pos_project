@@ -3,13 +3,17 @@
 import React, { useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import Link from 'next/link';
+import ExcelImportModal from '../../../components/ExcelImportModal';
+import { Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { downloadStockTemplate, exportStockCardExcel } from '../../../utils/excelStockHelper';
 
 export default function AddProductPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [fdaResults, setFdaResults] = useState([]);
   const [fdaLoading, setFdaLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [activeTab, setActiveTab] = useState('fda'); // 'fda', 'manual'
+  const [activeTab, setActiveTab] = useState('fda'); // 'fda', 'manual', 'excel'
+  const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
 
   // Manual Form State
   const [tradeName, setTradeName] = useState('');
@@ -157,24 +161,62 @@ export default function AddProductPage() {
           <p className="page-subtitle" style={{ color: 'var(--text-secondary)' }}>สืบค้นทะเบียนยาจาก อย. กระทรวงสาธารณสุขสดๆ หรือลงทะเบียนสินค้าใหม่เข้าคลังร้าน</p>
         </div>
 
-        <Link
-          href="/dashboard/stock"
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            color: 'var(--teal-600)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '10px 16px',
-            fontSize: '13px',
-            fontWeight: '600',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <span>📦</span> ไปที่หน้าคลังสินค้า
-        </Link>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={downloadStockTemplate}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="ดาวน์โหลดเทมเพลต Stock Card Excel มาตรฐาน"
+          >
+            <Download size={15} /> เทมเพลต Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsExcelImportOpen(true)}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="นำเข้าข้อมูลคลังยาและล็อตยาจากไฟล์ Excel"
+          >
+            <Upload size={15} /> นำเข้า Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/dashboard/inventory-stock?mode=all');
+                const json = await res.json();
+                if (json.success) exportStockCardExcel(json.data);
+              } catch (e) { console.error(e); }
+            }}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="ส่งออกรายงาน Stock Card เป็นไฟล์ Excel (.xlsx)"
+          >
+            <FileSpreadsheet size={15} /> ส่งออก Stock Card (.xlsx)
+          </button>
+
+          <Link
+            href="/dashboard/stock"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--teal-600)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: '600',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>📦</span> คลังสินค้า
+          </Link>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -219,7 +261,7 @@ export default function AddProductPage() {
         padding: '6px',
         borderRadius: '12px',
         border: '1px solid var(--border)',
-        maxWidth: '500px'
+        maxWidth: '750px'
       }}>
         <button
           onClick={() => setActiveTab('fda')}
@@ -263,6 +305,28 @@ export default function AddProductPage() {
           }}
         >
           <span>✍️</span> 2. กรอกข้อมูลสินค้าเอง
+        </button>
+
+        <button
+          onClick={() => setIsExcelImportOpen(true)}
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'excel' ? '#10b981' : 'transparent',
+            color: activeTab === 'excel' ? '#ffffff' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'excel' ? '700' : '500',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+        >
+          <span>📊</span> 3. นำเข้าจากไฟล์ Excel
         </button>
       </div>
 
@@ -614,6 +678,12 @@ export default function AddProductPage() {
           </form>
         </div>
       )}
+
+      {/* Excel Import Modal */}
+      <ExcelImportModal
+        isOpen={isExcelImportOpen}
+        onClose={() => setIsExcelImportOpen(false)}
+      />
     </DashboardLayout>
   );
 }
