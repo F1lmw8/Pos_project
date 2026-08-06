@@ -27,7 +27,7 @@ const navItems = [
     links: [
       { href: '/dashboard',                 label: 'ภาพรวม & สรุปยอด',      icon: LayoutDashboard },
       { href: '/dashboard/sales-logs',      label: 'ประวัติธุรกรรม',          icon: FileText },
-      { href: '/dashboard/fda-tax-reports', label: 'รายงานสรรพากรและ อย.', icon: Landmark },
+      { href: '/dashboard/fda-tax-reports', label: 'คำนวณภาษี & ใบเสร็จ (ม.86)', icon: Landmark },
       { href: '/dashboard/gpp-reports',     label: 'รายงาน GPP (ข.ย.)',    icon: ClipboardList },
     ]
   },
