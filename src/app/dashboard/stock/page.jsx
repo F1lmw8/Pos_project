@@ -375,6 +375,8 @@ export default function StockMonitorPage() {
             </table>
           </div>
         )}
+      </div>
+
       {/* Excel Import Modal */}
       <ExcelImportModal
         isOpen={isExcelImportOpen}
