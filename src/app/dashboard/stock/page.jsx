@@ -176,25 +176,6 @@ export default function StockMonitorPage() {
           >
             <FileSpreadsheet size={15} /> ส่งออก Stock Card (.xlsx)
           </button>
-
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            style={{
-              backgroundColor: '#10b981',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>+</span> เพิ่มสินค้า
-          </button>
         </div>
       </div>
 

@@ -318,6 +318,85 @@ export default function AddProductPage() {
             </button>
           </form>
 
+          {/* Barcode & FDA Guide Cards (Matching User Specification) */}
+          <div style={{
+            marginTop: '24px',
+            padding: '20px',
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '16px'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>
+              คุณสามารถระบุสินค้าด้วยรหัสที่พิมพ์อยู่นอกกล่อง:
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {/* EAN Barcode Card */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ backgroundColor: '#1e40af', color: '#ffffff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                    EAN-13 / EAN-8
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    บาร์โค้ด EAN
+                  </span>
+                </div>
+                <div style={{
+                  backgroundColor: '#fffbe3',
+                  color: '#0f172a',
+                  border: '1px solid #fef08a',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: 'var(--shadow-xs)'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>Adalat CR</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>30 mg · 30 tablets</div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '20px', letterSpacing: '-1px', lineHeight: 1, color: '#0f172a' }}>||||||||||||||||</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '3px', color: '#1e293b' }}>4057598015370</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  บาร์โค้ด 1D (8 หรือ 13 หลัก) ด้านข้างหรือด้านหลังกล่อง
+                </div>
+              </div>
+
+              {/* FDA Reg No Card */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ backgroundColor: '#065f46', color: '#ffffff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                    FDA Reg. No.
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight 700, color: 'var(--text-primary)' }}>
+                    เลขทะเบียน อย.
+                  </span>
+                </div>
+                <div style={{
+                  backgroundColor: '#ecfdf5',
+                  color: '#064e3b',
+                  border: '1px solid #a7f3d0',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-xs)'
+                }}>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#064e3b' }}>BLACKMORES</div>
+                  <div style={{ fontSize: '11px', color: '#047857', marginTop: '2px' }}>EXEC B'S · 60 tablets</div>
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: '#dc2626', marginTop: '8px' }}>
+                    Reg.No. 2C 45/43
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  เช่น "Reg.No. 2C 45/43" — พิมพ์ในส่วนข้อกำหนด
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Results List */}
           {fdaLoading && (
             <div style={{ textAlign: 'center', padding: '40px', color: '#10b981', fontWeight: '600', fontSize: '15px' }}>
