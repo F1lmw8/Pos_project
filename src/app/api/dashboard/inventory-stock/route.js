@@ -31,6 +31,9 @@ export async function GET(request) {
       filters.push('COALESCE(stock.expiring_90_quantity, 0) > 0');
     }
 
+    // Exclude discontinued / soft-deleted products
+    filters.push("(d.fda_status IS NULL OR d.fda_status <> 'discontinued')");
+
     const whereSql = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
 
     const result = await pool.query(`
