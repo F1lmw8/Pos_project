@@ -99,7 +99,7 @@ export async function POST(req) {
     }
 
     const result = await generateText({
-      model: google('gemini-3.5-flash'),
+      model: google('gemini-3.1-flash-lite-preview'),
       system: systemPromptToUse,
       messages: initialMessages,
     });
