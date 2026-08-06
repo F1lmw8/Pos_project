@@ -44,6 +44,10 @@ export async function PUT(request, { params }) {
       stock_quantity
     } = body;
 
+    const rawId = decodeURIComponent(id);
+    const targetRes = await pool.query('SELECT tmt_id FROM drugs WHERE tmt_id = $1 OR sku = $1 OR barcode = $1 LIMIT 1', [rawId]);
+    const targetTmtId = targetRes.rows.length > 0 ? targetRes.rows[0].tmt_id : rawId;
+
     // 1. Update drugs table
     await pool.query(`
       UPDATE drugs
@@ -65,7 +69,7 @@ export async function PUT(request, { params }) {
       fda_reg_no,
       barcode,
       manufacturer,
-      id
+      targetTmtId
     ]);
 
     // 2. Upsert inventory table
@@ -80,7 +84,23 @@ export async function PUT(request, { params }) {
         SET price = EXCLUDED.price,
             stock_quantity = EXCLUDED.stock_quantity,
             updated_at = CURRENT_TIMESTAMP
-      `, [id, numStock, numPrice]);
+      `, [targetTmtId, numStock, numPrice]);
+
+      // 3. Ensure a lot exists in inventory_lots for stock monitoring
+      if (numStock > 0) {
+        await pool.query(`
+          INSERT INTO inventory_lots (drug_id, lot_number, quantity, cost_price, expiry_date)
+          VALUES ($1, 'LOT-EDIT-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD'), $2, $3 * 0.7, CURRENT_DATE + INTERVAL '2 years')
+          ON CONFLICT DO NOTHING
+        `, [targetTmtId, numStock, numPrice]);
+
+        await pool.query(`
+          UPDATE inventory_lots
+          SET quantity = $2,
+              expiry_date = GREATEST(expiry_date, CURRENT_DATE + INTERVAL '1 year')
+          WHERE drug_id = $1
+        `, [targetTmtId, numStock]);
+      }
     }
 
     // Fetch updated product
@@ -92,7 +112,7 @@ export async function PUT(request, { params }) {
       LEFT JOIN inventory i ON d.tmt_id = i.drug_id
       WHERE d.tmt_id = $1 OR d.sku = $1
       LIMIT 1
-    `, [id]);
+    `, [targetTmtId]);
 
     return NextResponse.json({
       success: true,

@@ -197,7 +197,7 @@ export async function POST(request) {
 
     // 2. Insert into inventory table
     const numPrice = price ? parseFloat(price) : 0.00;
-    const numStock = stock_quantity ? parseInt(stock_quantity, 10) : 0;
+    const numStock = stock_quantity !== undefined ? parseInt(stock_quantity, 10) : (body.stock_qty ? parseInt(body.stock_qty, 10) : 0);
 
     await pool.query(`
       INSERT INTO inventory (drug_id, stock_quantity, price)
@@ -207,6 +207,15 @@ export async function POST(request) {
           stock_quantity = EXCLUDED.stock_quantity,
           updated_at = CURRENT_TIMESTAMP
     `, [drugId, numStock, numPrice]);
+
+    // 3. Ensure inventory_lots entry
+    if (numStock > 0) {
+      await pool.query(`
+        INSERT INTO inventory_lots (drug_id, lot_number, quantity, cost_price, expiry_date)
+        VALUES ($1, 'LOT-ADD-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD'), $2, $3 * 0.7, CURRENT_DATE + INTERVAL '2 years')
+        ON CONFLICT DO NOTHING
+      `, [drugId, numStock, numPrice]);
+    }
 
     // Fetch created product
     const createdRes = await pool.query(`

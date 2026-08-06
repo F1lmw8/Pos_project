@@ -23,7 +23,11 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
       setTradeName(product.trade_name || '');
       setActiveIngredient(product.active_ingredient || '');
       setPrice(product.price !== undefined ? product.price : '0');
-      setStockQuantity(product.stock_quantity !== undefined ? product.stock_quantity : '0');
+      setStockQuantity(
+        product.stock_quantity !== undefined 
+          ? product.stock_quantity 
+          : (product.sellable_quantity !== undefined ? product.sellable_quantity : '0')
+      );
       setFdaRegNo(product.fda_reg_no || '');
       setManufacturer(product.manufacturer || '');
       setDrugType(product.drug_type || 'general');
@@ -71,7 +75,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
 
       const json = await res.json();
       if (json.success) {
-        setSuccessMsg('บันทึกการแก้ไขสินค้าเรียบร้อยแล้ว');
+        setSuccessMsg('บันทึกการแก้ไขและอัปเดตสต็อกเรียบร้อยแล้ว');
         setIsEditing(false);
         if (onUpdateSuccess) onUpdateSuccess();
       } else {
@@ -117,7 +121,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
       position: 'fixed',
       inset: 0,
       zIndex: 1000,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
       backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
@@ -125,20 +129,20 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
       padding: '16px'
     }}>
       <div style={{
-        backgroundColor: '#111c18',
-        color: '#e2e8f0',
-        border: '1px solid #1c352f',
+        backgroundColor: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        border: '1px solid var(--border)',
         borderRadius: '16px',
         width: '100%',
         maxWidth: '680px',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+        boxShadow: 'var(--shadow-xl)',
         padding: '24px'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
             {isEditing ? '✏️ แก้ไขข้อมูลสินค้า' : 'รายละเอียดสินค้า'}
           </h2>
           <button
@@ -146,7 +150,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-muted)',
               fontSize: '20px',
               cursor: 'pointer'
             }}
@@ -172,65 +176,65 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
           <form onSubmit={handleSaveEdit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ชื่อการค้า (Trade Name)*</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ชื่อการค้า (Trade Name)*</label>
                 <input
                   type="text"
                   required
                   value={tradeName}
                   onChange={(e) => setTradeName(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '14px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ชื่อตัวยาสามัญ (Active Ingredient)</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ชื่อตัวยาสามัญ (Active Ingredient)</label>
                 <input
                   type="text"
                   value={activeIngredient}
                   onChange={(e) => setActiveIngredient(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '14px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ราคาขาย (บาท)*</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ราคาขาย (บาท)*</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#10b981', fontWeight: '700', fontSize: '14px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: '#10b981', fontWeight: '700', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>จำนวนคงเหลือในคลัง*</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>จำนวนคงเหลือในคลัง*</label>
                 <input
                   type="number"
                   required
                   value={stockQuantity}
                   onChange={(e) => setStockQuantity(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#38bdf8', fontWeight: '700', fontSize: '14px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1.5px solid var(--teal-600)', borderRadius: '8px', padding: '10px 12px', color: 'var(--teal-600)', fontWeight: '700', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>เลขทะเบียน อย.</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>เลขทะเบียน อย.</label>
                 <input
                   type="text"
                   value={fdaRegNo}
                   onChange={(e) => setFdaRegNo(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#ef4444', fontWeight: '700', fontSize: '14px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: '#ef4444', fontWeight: '700', fontSize: '14px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ประเภทกลุ่มยา</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ประเภทกลุ่มยา</label>
                 <select
                   value={drugType}
                   onChange={(e) => setDrugType(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
                 >
                   <option value="general">ทั่วไป (General)</option>
                   <option value="dangerous">ยาอันตราย (ข.ย. 11)</option>
@@ -240,22 +244,22 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>ผู้ผลิต / แบรนด์</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ผู้ผลิต / แบรนด์</label>
                 <input
                   type="text"
                   value={manufacturer}
                   onChange={(e) => setManufacturer(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>บาร์โค้ด</label>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>บาร์โค้ด</label>
                 <input
                   type="text"
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#09120f', border: '1px solid #1c352f', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '13px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
                 />
               </div>
             </div>
@@ -264,7 +268,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                style={{ backgroundColor: '#334155', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
               >
                 ✕ ยกเลิก
               </button>
@@ -285,24 +289,24 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               gridTemplateColumns: '1fr 1fr',
               gap: '16px',
               marginBottom: '24px',
-              backgroundColor: '#0a1411',
+              backgroundColor: 'var(--bg-surface)',
               padding: '16px',
               borderRadius: '12px',
-              border: '1px solid #162923'
+              border: '1px solid var(--border)'
             }}>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>ชื่อสินค้า</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>{product.trade_name}</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{product.active_ingredient} ({product.strength || '-'})</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>ชื่อสินค้า</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{product.trade_name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{product.active_ingredient} ({product.strength || '-'})</div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>SKU</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>SKU</div>
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#10b981', fontFamily: 'monospace' }}>{product.sku || product.tmt_id || 'P-001'}</div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>หมวดหมู่</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>หมวดหมู่</div>
                 <span style={{
                   display: 'inline-block',
                   backgroundColor: '#10b981',
@@ -317,12 +321,12 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>แบรนด์ / ผู้ผลิต</div>
-                <div style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '500' }}>{product.manufacturer || '-'}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>แบรนด์ / ผู้ผลิต</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500' }}>{product.manufacturer || '-'}</div>
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>สถานะ</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>สถานะ</div>
                 <span style={{
                   display: 'inline-block',
                   backgroundColor: '#ecfdf5',
@@ -338,7 +342,7 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               </div>
 
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>การจำแนกประเภท</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>การจำแนกประเภท</div>
                 <span style={{
                   display: 'inline-block',
                   backgroundColor: currentClass.bg,
@@ -356,34 +360,34 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
 
             {/* Inventory & Pricing */}
             <div style={{
-              backgroundColor: '#0a1411',
+              backgroundColor: 'var(--bg-surface)',
               padding: '16px',
               borderRadius: '12px',
-              border: '1px solid #162923',
+              border: '1px solid var(--border)',
               marginBottom: '24px'
             }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>
                 บรรจุภัณฑ์และราคา
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>ราคาขายหน้าร้าน</div>
+                <div style={{ backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ราคาขายหน้าร้าน</div>
                   <div style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>
                     ฿{Number(product.price || 0).toFixed(2)}
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>สต็อกคงเหลือ</div>
+                <div style={{ backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>สต็อกคงเหลือ</div>
                   <div style={{ fontSize: '18px', fontWeight: '800', color: '#38bdf8' }}>
-                    {product.stock_quantity || 0} หน่วย
+                    {product.stock_quantity !== undefined ? product.stock_quantity : (product.sellable_quantity || 0)} หน่วย
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#111f1a', padding: '12px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>บาร์โค้ด</div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', fontFamily: 'monospace' }}>
+                <div style={{ backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>บาร์โค้ด</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                     {product.barcode || '-'}
                   </div>
                 </div>
@@ -392,13 +396,13 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
 
             {/* FDA Reg No Section */}
             <div style={{
-              backgroundColor: '#0a1411',
+              backgroundColor: 'var(--bg-surface)',
               padding: '16px',
               borderRadius: '12px',
-              border: '1px solid #162923',
+              border: '1px solid var(--border)',
               marginBottom: '24px'
             }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', marginBottom: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
                 ทะเบียน อย.
               </div>
               <div style={{ fontSize: '15px', fontWeight: '800', color: '#ef4444' }}>
@@ -411,9 +415,9 @@ export default function ProductDetailModal({ isOpen, onClose, product, onUpdateS
               <button
                 onClick={onClose}
                 style={{
-                  backgroundColor: '#1e293b',
-                  color: '#e2e8f0',
-                  border: '1px solid #334155',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
                   padding: '10px 16px',
                   fontSize: '13px',

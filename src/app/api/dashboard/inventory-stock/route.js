@@ -23,10 +23,10 @@ export async function GET(request) {
     }
 
     if (mode === 'available') {
-      filters.push('COALESCE(stock.sellable_quantity, 0) > 0');
+      filters.push('GREATEST(COALESCE(stock.sellable_quantity, 0), COALESCE(i.stock_quantity, 0)) > 0');
     } else if (mode === 'low') {
-      filters.push('COALESCE(stock.sellable_quantity, 0) > 0');
-      filters.push('COALESCE(stock.sellable_quantity, 0) <= COALESCE(d.reorder_point, 10)');
+      filters.push('GREATEST(COALESCE(stock.sellable_quantity, 0), COALESCE(i.stock_quantity, 0)) > 0');
+      filters.push('GREATEST(COALESCE(stock.sellable_quantity, 0), COALESCE(i.stock_quantity, 0)) <= COALESCE(d.reorder_point, 10)');
     } else if (mode === 'expiring') {
       filters.push('COALESCE(stock.expiring_90_quantity, 0) > 0');
     }
@@ -53,8 +53,8 @@ export async function GET(request) {
         COALESCE(d.reorder_point, 10) AS reorder_point,
         COALESCE(i.stock_quantity, 0) AS system_stock,
         COALESCE(i.price, 0) AS price,
-        COALESCE(stock.sellable_quantity, 0) AS sellable_quantity,
-        COALESCE(stock.total_lot_quantity, 0) AS total_lot_quantity,
+        GREATEST(COALESCE(stock.sellable_quantity, 0), COALESCE(i.stock_quantity, 0)) AS sellable_quantity,
+        GREATEST(COALESCE(stock.total_lot_quantity, 0), COALESCE(i.stock_quantity, 0)) AS total_lot_quantity,
         COALESCE(stock.expiring_30_quantity, 0) AS expiring_30_quantity,
         COALESCE(stock.expiring_90_quantity, 0) AS expiring_90_quantity,
         COALESCE(stock.expired_quantity, 0) AS expired_quantity,

@@ -125,26 +125,26 @@ export default function AddProductModal({ isOpen, onClose, onSelectProduct }) {
       padding: '16px'
     }}>
       <div style={{
-        backgroundColor: '#111b17',
-        color: '#e2e8f0',
-        border: '1px solid #1d3b31',
+        backgroundColor: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        border: '1px solid var(--border)',
         borderRadius: '18px',
         width: '100%',
         maxWidth: '740px',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        boxShadow: 'var(--shadow-xl)',
         padding: '24px'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#ffffff', margin: 0 }}>เพิ่มสินค้าใหม่</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>เพิ่มสินค้าใหม่ (สืบค้น อย.)</h2>
           <button
             onClick={onClose}
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-muted)',
               fontSize: '20px',
               cursor: 'pointer',
               padding: '4px'
@@ -157,7 +157,7 @@ export default function AddProductModal({ isOpen, onClose, onSelectProduct }) {
         {/* Tab Navigation */}
         <div style={{
           display: 'flex',
-          backgroundColor: '#0a120f',
+          backgroundColor: 'var(--bg-surface)',
           padding: '4px',
           borderRadius: '12px',
           border: '1px solid #1a2e28',
