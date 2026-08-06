@@ -606,20 +606,20 @@ export default function PosRegisterPage() {
                         if (typeStr.includes('ควบคุมพิเศษ') || typeStr.includes('ข.ย. 10') || typeStr.includes('ข.ย.10') || typeStr === 'special_controlled') {
                           return (
                             <span style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
-                              🔴 ยาควบคุมพิเศษ (ข.ย. 10)
+                              ยาควบคุมพิเศษ (ข.ย. 10)
                             </span>
                           );
                         }
                         if (typeStr.includes('อันตราย') || typeStr.includes('ข.ย. 11') || typeStr.includes('ข.ย.11') || typeStr === 'dangerous') {
                           return (
                             <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
-                              ⚠️ ยาอันตราย (ข.ย. 11)
+                              ยาอันตราย (ข.ย. 11)
                             </span>
                           );
                         }
                         return (
                           <span style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
-                            🟢 ยาสามัญประจำบ้าน
+                            ยาสามัญประจำบ้าน
                           </span>
                         );
                       })()}
