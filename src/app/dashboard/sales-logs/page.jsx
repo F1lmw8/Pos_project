@@ -219,51 +219,94 @@ export default function SalesLogsPage() {
                         {/* Expanded items row */}
                         {isExpanded && (
                           <tr className="expanded-row">
-                            <td colSpan="8" style={{ padding: '8px 12px 14px' }}>
-                              <div className="expanded-inner" style={{ margin: 0, padding: '12px', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                                <div className="expanded-header" style={{ marginBottom: '8px', padding: '8px 12px', borderRadius: '6px' }}>
-                                  <span>รายการยาในบิล {sale.id} · ผู้ป่วย: <strong>{custName}</strong> · เภสัชกร: <strong>{pharmName}</strong></span>
-                                  <span>จัดยาล็อต FEFO</span>
+                            <td colSpan="8" style={{ padding: '8px 16px 16px', backgroundColor: 'var(--bg-muted)' }}>
+                              <div style={{
+                                backgroundColor: 'var(--bg-card)',
+                                border: '1.5px solid var(--border)',
+                                borderRadius: '12px',
+                                padding: '14px 16px',
+                                boxShadow: 'var(--shadow-sm)'
+                              }}>
+                                {/* Bill Metadata Header Bar */}
+                                <div style={{
+                                  display: 'flex',
+                                  justify: 'space-between',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '8px',
+                                  paddingBottom: '10px',
+                                  marginBottom: '12px',
+                                  borderBottom: '1px solid var(--border)',
+                                  fontSize: '12px'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      รายการยาในบิล #{sale.id}
+                                    </span>
+                                    <span style={{ color: 'var(--text-muted)' }}>|</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>
+                                      ผู้ป่วย / ลูกค้า: <strong style={{ color: 'var(--teal-600)' }}>{custName}</strong>
+                                    </span>
+                                    <span style={{ color: 'var(--text-muted)' }}>|</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>
+                                      เภสัชกร: <strong>{pharmName}</strong>
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal-600)', backgroundColor: 'var(--bg-surface)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                    การจัดยาล็อตมาตรฐาน (FEFO)
+                                  </span>
                                 </div>
-                                <table className="data-table" style={{ fontSize: '12px', width: '100%', tableLayout: 'fixed' }}>
-                                  <thead>
-                                    <tr>
-                                      <th style={{ width: '42%', paddingLeft: '12px' }}>ตัวยา / TMT</th>
-                                      <th className="td-center" style={{ width: '14%' }}>ขนาด</th>
-                                      <th className="td-center" style={{ width: '16%' }}>ล็อต</th>
-                                      <th className="td-center" style={{ width: '10%' }}>จำนวน</th>
-                                      <th className="td-right" style={{ width: '10%' }}>ราคา/หน่วย</th>
-                                      <th className="td-right" style={{ width: '8%', paddingRight: '12px' }}>รวม</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {sale.items && sale.items.length > 0 ? (
-                                      sale.items.map((item, itemIdx) => (
-                                        <tr key={itemIdx}>
-                                          <td style={{ paddingLeft: '12px' }}>
-                                            <div className="td-bold" style={{ fontSize: '12.5px' }}>{item.trade_name}</div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TMT-{String(item.drug_id).replace(/^TMT-/, '')}</div>
-                                          </td>
-                                          <td className="td-center" style={{ color: 'var(--text-secondary)' }}>{item.strength} {item.unit}</td>
-                                          <td className="td-center">
-                                            <span className="badge badge-gray td-mono">{item.lot_number || 'LOT-DEFAULT'}</span>
-                                          </td>
-                                          <td className="td-center" style={{ fontWeight: 700, color: 'var(--teal-600)' }}>{item.quantity}</td>
-                                          <td className="td-right" style={{ color: 'var(--text-secondary)' }}>฿{item.unit_price.toFixed(2)}</td>
-                                          <td className="td-right td-bold" style={{ paddingRight: '12px' }}>฿{item.subtotal.toFixed(2)}</td>
-                                        </tr>
-                                      ))
-                                    ) : (
-                                      <tr>
-                                        <td colSpan="6">
-                                          <div className="empty-state" style={{ padding: '16px 0' }}>
-                                            <div style={{ fontSize: '11px' }}>ไม่พบรายละเอียด</div>
+
+                                {/* Itemized Cards List */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {sale.items && sale.items.length > 0 ? (
+                                    sale.items.map((item, itemIdx) => (
+                                      <div
+                                        key={itemIdx}
+                                        style={{
+                                          display: 'flex',
+                                          justify: 'space-between',
+                                          alignItems: 'center',
+                                          backgroundColor: 'var(--bg-surface)',
+                                          border: '1px solid var(--border)',
+                                          borderRadius: '8px',
+                                          padding: '10px 14px',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        <div>
+                                          <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+                                            {item.trade_name}
                                           </div>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
+                                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '3px', fontSize: '11px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                                            <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                                              TMT-{String(item.drug_id).replace(/^TMT-/, '')}
+                                            </span>
+                                            <span>·</span>
+                                            <span>ขนาด: {item.strength || '-'} {item.unit}</span>
+                                            <span>·</span>
+                                            <span style={{ fontFamily: 'monospace', backgroundColor: 'var(--bg-card)', padding: '1px 6px', borderRadius: '4px', border: '1px solid var(--border)', fontSize: '10.5px' }}>
+                                              ล็อต: {item.lot_number || 'LOT-DEFAULT'}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <div style={{ textAlign: 'right' }}>
+                                          <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--teal-600)' }}>
+                                            ฿{item.subtotal.toFixed(2)}
+                                          </div>
+                                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                            {item.quantity} {item.unit} × ฿{item.unit_price.toFixed(2)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                                      ไม่พบรายละเอียดรายการยาในบิลนี้
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>

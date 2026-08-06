@@ -284,7 +284,9 @@ export default function DashboardLayout({ children }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          marginTop: 'auto',
+          flexShrink: 0
         }}>
           {!isCollapsed ? (
             <>
