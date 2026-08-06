@@ -296,7 +296,7 @@ export default function DashboardLayout({ children }) {
             </>
           ) : (
             <>
-              <ThemeToggle style={{ padding: '6px', width: '38px', height: '38px', justifyContent: 'center', borderRadius: '10px' }} />
+              <ThemeToggle iconOnly style={{ width: '38px', height: '38px', borderRadius: '50%' }} />
               <Link href="/" title="กลับหน้าขาย POS" style={{
                 width: '40px',
                 height: '40px',
