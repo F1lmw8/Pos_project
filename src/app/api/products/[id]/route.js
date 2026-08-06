@@ -105,17 +105,29 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE product
+// DELETE product (with cascading cleanup)
 export async function DELETE(request, { params }) {
   const { id } = await params;
   try {
-    const res = await pool.query('DELETE FROM drugs WHERE tmt_id = $1 OR sku = $1 RETURNING tmt_id', [id]);
-    if (res.rowCount === 0) {
-      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+    // 1. Find target drug tmt_id
+    const drugRes = await pool.query('SELECT tmt_id FROM drugs WHERE tmt_id = $1 OR sku = $1 LIMIT 1', [id]);
+    if (drugRes.rows.length === 0) {
+      return NextResponse.json({ success: false, error: 'ไม่พบรายการสินค้าที่ต้องการลบ' }, { status: 404 });
     }
-    return NextResponse.json({ success: true, message: 'ลบสินค้าเรียบร้อยแล้ว' });
+    const tmtId = drugRes.rows[0].tmt_id;
+
+    // 2. Cascade delete dependent tables first to satisfy foreign key constraints
+    await pool.query('DELETE FROM controlled_drug_logs WHERE drug_id = $1', [tmtId]);
+    await pool.query('DELETE FROM inventory_lots WHERE drug_id = $1', [tmtId]);
+    await pool.query('DELETE FROM inventory WHERE drug_id = $1', [tmtId]);
+    await pool.query('DELETE FROM sale_items WHERE drug_id = $1', [tmtId]);
+
+    // 3. Delete from drugs table
+    await pool.query('DELETE FROM drugs WHERE tmt_id = $1', [tmtId]);
+
+    return NextResponse.json({ success: true, message: 'ลบสินค้าออกจากคลังเรียบร้อยแล้ว' });
   } catch (error) {
     console.error('Error deleting product:', error);
-    return NextResponse.json({ success: false, error: 'Failed to delete product' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'ไม่สามารถลบสินค้าได้: ' + error.message }, { status: 500 });
   }
 }
