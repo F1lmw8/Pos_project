@@ -372,7 +372,7 @@ export default function AddProductPage() {
                   <span style={{ backgroundColor: '#065f46', color: '#ffffff', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
                     FDA Reg. No.
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight 700, color: 'var(--text-primary)' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     เลขทะเบียน อย.
                   </span>
                 </div>
