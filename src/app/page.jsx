@@ -586,18 +586,8 @@ export default function PosRegisterPage() {
                   className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`}
                 >
                   <div className="card-header">
-                    <span className="tmt-id-label">
-                      {product.drug_type === 'special_controlled' ? (
-                        <span style={{ backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>
-                          🔴 ควบคุมพิเศษ
-                        </span>
-                      ) : product.drug_type === 'dangerous' ? (
-                        <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>
-                          ⚠️ ยาอันตราย
-                        </span>
-                      ) : (
-                        `TMT-${product.tmt_id}`
-                      )}
+                    <span className="tmt-id-label" style={{ fontFamily: 'monospace', fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                      TMT-{String(product.tmt_id).replace(/^TMT-/, '')}
                     </span>
                     <span
                       className={`stock-badge ${
@@ -610,11 +600,33 @@ export default function PosRegisterPage() {
 
                   <div className="card-body">
                     <h3 className="drug-title">{product.trade_name}</h3>
-                    <div className="drug-details">
+                    <div className="drug-details" style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {(() => {
+                        const typeStr = (product.drug_type || product.category || '').toLowerCase();
+                        if (typeStr.includes('ควบคุมพิเศษ') || typeStr.includes('ข.ย. 10') || typeStr.includes('ข.ย.10') || typeStr === 'special_controlled') {
+                          return (
+                            <span style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
+                              🔴 ยาควบคุมพิเศษ (ข.ย. 10)
+                            </span>
+                          );
+                        }
+                        if (typeStr.includes('อันตราย') || typeStr.includes('ข.ย. 11') || typeStr.includes('ข.ย.11') || typeStr === 'dangerous') {
+                          return (
+                            <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
+                              ⚠️ ยาอันตราย (ข.ย. 11)
+                            </span>
+                          );
+                        }
+                        return (
+                          <span style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', fontSize: '10.5px' }}>
+                            🟢 ยาสามัญประจำบ้าน
+                          </span>
+                        );
+                      })()}
                       {product.strength && <span className="drug-tag">{product.strength}</span>}
                       {product.dosage_form && <span className="drug-tag">{product.dosage_form}</span>}
                     </div>
-                    {product.active_ingredient && (
+                    {product.active_ingredient && product.active_ingredient !== product.trade_name && (
                       <p className="drug-desc" title={product.active_ingredient}>
                         {product.active_ingredient}
                       </p>
