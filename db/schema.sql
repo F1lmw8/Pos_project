@@ -111,7 +111,7 @@ CREATE TABLE controlled_drug_logs (
     patient_name VARCHAR(255) NOT NULL,
     patient_id_card VARCHAR(20),
     prescriber_name VARCHAR(255),          -- แพทย์ / เภสัชกรผู้สั่งใช้
-    pharmacist_name VARCHAR(255) DEFAULT 'ภก. สมชาย มีสุข (ภ. 12345)', -- เภสัชกรผู้ส่งมอบ
+    pharmacist_name VARCHAR(255) DEFAULT 'ภก. อภิโช โลมทอง (ภ. 34152)', -- เภสัชกรผู้ส่งมอบ
     purpose TEXT,                          -- อาการป่วย / เหตุผลในการจ่าย
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -297,7 +297,7 @@ export default function GppReportsPage() {
                     <tr key={row.id || idx}>
                       <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>{new Date(row.received_at).toLocaleDateString('th-TH')}</td>
-                      <td style={{ fontWeight: 500 }}>{row.supplier_name || 'บริษัท ผู้จำหน่ายยา/เวชภัณฑ์'}</td>
+                      <td style={{ fontWeight: 500 }}>{row.manufacturer || 'บริษัท ผู้จำหน่ายยา/เวชภัณฑ์'}</td>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {row.trade_name} {row.strength ? `(${row.strength})` : ''}
                       </td>
@@ -342,7 +342,7 @@ export default function GppReportsPage() {
                         {row.patient_id_card && <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{row.patient_id_card}</div>}
                       </td>
                       <td style={{ fontSize: '11.5px', color: 'var(--text-primary)', fontWeight: '500' }}>{row.pharmacist_name || storeSettings.pharmacistName}</td>
-                      <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{row.purpose || 'บรรเทาปวด/รักษาอาการป่วยเบื้องต้น'}</td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{row.purpose || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
