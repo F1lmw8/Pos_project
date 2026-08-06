@@ -243,16 +243,20 @@ export default function GppReportsPage() {
             boxShadow: 'var(--shadow-xs)'
           }}
         >
-          {/* Printable Header Title */}
+          {/* Official Form Header */}
           <div style={{ textAlign: 'center', paddingBottom: '16px', marginBottom: '20px', borderBottom: '1.5px solid var(--border)' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              {getReportTitle()}
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              {reportType === 'khor_yor_9' && 'แบบ ข.ย. ๙'}
+              {reportType === 'khor_yor_10' && 'แบบ ข.ย. ๑๐'}
+              {reportType === 'khor_yor_11' && 'แบบ ข.ย. ๑๑'}
             </h2>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              ตามกฎกระทรวงสาธารณสุข มาตรฐาน GPP ร้านขายยาแผนปัจจุบัน
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {reportType === 'khor_yor_9' && 'บัญชีการซื้อยา'}
+              {reportType === 'khor_yor_10' && 'บัญชีการขายยาควบคุมพิเศษ'}
+              {reportType === 'khor_yor_11' && 'บัญชีการขายยาอันตราย เฉพาะรายการยาที่เลขาธิการคณะกรรมการอาหารและยากำหนด'}
             </div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-              ชื่อสถานประกอบการ: {storeSettings.storeName} (ใบอนุญาตเลขที่: {storeSettings.licenseNo})
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              (ชื่อสถานที่ขายยา) <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{storeSettings.storeName}</span> (ใบอนุญาตเลขที่: {storeSettings.licenseNo})
             </div>
           </div>
 
@@ -273,19 +277,19 @@ export default function GppReportsPage() {
               </div>
             </div>
           ) : reportType === 'khor_yor_9' ? (
-            /* Table for Khor Yor 9 (Purchases) */
+            /* Official Table for Khor Yor 9 (Purchases) */
             <div className="table-responsive">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '50px', textAlign: 'center' }}>ลำดับ</th>
-                    <th>วัน/เดือน/ปี ที่รับ</th>
-                    <th>ชื่อยา/ความแรง/รูปแบบ</th>
-                    <th>เลขทะเบียน อย.</th>
-                    <th>เลขที่ล็อต (Lot)</th>
-                    <th>วันหมดอายุ</th>
-                    <th style={{ textAlign: 'center' }}>จำนวนรับ</th>
-                    <th style={{ textAlign: 'right' }}>ราคาต้นทุน (฿)</th>
+                    <th style={{ width: '50px', textAlign: 'center' }}>ลำดับที่</th>
+                    <th style={{ width: '110px' }}>วัน เดือน ปี ที่ซื้อ</th>
+                    <th>ชื่อผู้ขาย</th>
+                    <th>ชื่อยา</th>
+                    <th style={{ width: '130px' }}>เลขที่หรืออักษร ของครั้งที่ผลิต</th>
+                    <th style={{ textAlign: 'center', width: '100px' }}>จำนวน / ปริมาณ</th>
+                    <th style={{ width: '150px' }}>ลายมือชื่อ ผู้มีหน้าที่ปฏิบัติการ</th>
+                    <th style={{ width: '120px' }}>หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,35 +297,32 @@ export default function GppReportsPage() {
                     <tr key={row.id || idx}>
                       <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>{new Date(row.received_at).toLocaleDateString('th-TH')}</td>
+                      <td style={{ fontWeight: 500 }}>{row.supplier_name || 'บริษัท ผู้จำหน่ายยา/เวชภัณฑ์'}</td>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {row.trade_name} {row.strength ? `(${row.strength})` : ''}
                       </td>
-                      <td style={{ fontFamily: 'monospace' }}>{row.fda_reg_no || '-'}</td>
                       <td style={{ fontFamily: 'monospace' }}>{row.lot_number || '-'}</td>
-                      <td>{row.expiry_date ? new Date(row.expiry_date).toLocaleDateString('th-TH') : '-'}</td>
                       <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.quantity} {row.unit}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {Number(row.cost_price).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                      </td>
+                      <td style={{ fontSize: '11.5px', color: 'var(--text-primary)' }}>{storeSettings.pharmacistName}</td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '11.5px' }}>{row.fda_reg_no ? `เลข อย.: ${row.fda_reg_no}` : '-'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            /* Table for Khor Yor 10 / Khor Yor 11 (Controlled & Dangerous Drug Sales) */
+            /* Official Table for Khor Yor 10 / Khor Yor 11 (Controlled & Dangerous Drug Sales) */
             <div className="table-responsive">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '40px', textAlign: 'center' }}>ลำดับ</th>
-                    <th>วัน/เดือน/ปี ที่ขาย</th>
-                    <th>ชื่อยา/ความแรง (Lot)</th>
-                    <th style={{ textAlign: 'center' }}>จำนวน</th>
-                    <th>ชื่อ-นามสกุล ผู้รับยา/ผู้ป่วย</th>
-                    <th>เลขบัตรประชาชน</th>
-                    <th>เภสัชกรส่งมอบ</th>
-                    <th>เหตุผลในการจ่าย</th>
+                    <th style={{ width: '50px', textAlign: 'center' }}>ลำดับที่</th>
+                    <th style={{ width: '110px' }}>วัน เดือน ปี ที่ขาย</th>
+                    <th>ชื่อยา / รายละเอียด</th>
+                    <th style={{ textAlign: 'center', width: '110px' }}>จำนวน / ปริมาณ ที่ขาย</th>
+                    <th>ชื่อ - สกุล ผู้ซื้อ</th>
+                    <th style={{ width: '160px' }}>ลายมือชื่อ ผู้มีหน้าที่ปฏิบัติการ</th>
+                    <th>หมายเหตุ / ข้อบ่งใช้</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -331,16 +332,16 @@ export default function GppReportsPage() {
                       <td>{new Date(row.transaction_date || row.log_date).toLocaleDateString('th-TH')}</td>
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.trade_name}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                          Lot: {row.lot_number || '-'} | อย.: {row.fda_reg_no || '-'}
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                          ครั้งที่ผลิต (Lot): {row.lot_number || '-'} | เลข อย.: {row.fda_reg_no || '-'}
                         </div>
                       </td>
                       <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.quantity} {row.unit}</td>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {row.patient_name || 'ลูกค้าทั่วไป'}
+                        {row.patient_id_card && <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{row.patient_id_card}</div>}
                       </td>
-                      <td style={{ fontFamily: 'monospace' }}>{row.patient_id_card || '-'}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: '500' }}>{row.pharmacist_name || storeSettings.pharmacistName}</td>
+                      <td style={{ fontSize: '11.5px', color: 'var(--text-primary)', fontWeight: '500' }}>{row.pharmacist_name || storeSettings.pharmacistName}</td>
                       <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{row.purpose || 'บรรเทาปวด/รักษาอาการป่วยเบื้องต้น'}</td>
                     </tr>
                   ))}
@@ -348,6 +349,18 @@ export default function GppReportsPage() {
               </table>
             </div>
           )}
+
+          {/* Official Pharmacist Signature Block (Visible on Print) */}
+          <div className="print-only" style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #000000', display: 'flex', justifyContent: 'space-between', fontSize: '11pt', color: '#000000' }}>
+            <div>
+              วันที่พิมพ์รายงาน: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div>(ลายมือชื่อ) .................................................... ผู้มีหน้าที่ปฏิบัติการ</div>
+              <div style={{ marginTop: '6px', fontWeight: 700 }}>({storeSettings.pharmacistName})</div>
+            </div>
+          </div>
+        </div>
 
           {/* Printable Signature Footer (Shown only when printing) */}
           <div className="print-only" style={{ display: 'none', justifyContent: 'space-between', marginTop: '40px', fontSize: '12px' }}>
