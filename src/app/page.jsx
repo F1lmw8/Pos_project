@@ -462,8 +462,8 @@ export default function PosRegisterPage() {
     const pPayload = pInfo || {
       patient_name: selectedCustomer?.name || 'ลูกค้าทั่วไป',
       patient_id_card: selectedCustomer?.id_card || '',
-      prescriber_name: 'ภก. ผู้สั่งใช้ยา',
-      pharmacist_name: 'ภก. สมชาย มีสุข (ภ. 12345)',
+      prescriber_name: storeSettings.pharmacistName || 'ภก. ผู้สั่งใช้ยา',
+      pharmacist_name: storeSettings.pharmacistName || 'ภก. อภิโช โลมทอง (ภ. 34152)',
       purpose: dispensingReason || 'บรรเทาปวด/มีไข้'
     };
 

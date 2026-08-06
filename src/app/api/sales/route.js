@@ -171,7 +171,7 @@ export async function POST(request) {
               patient_info?.patient_name || 'ลูกค้าทั่วไป',
               patient_info?.patient_id_card || '',
               patient_info?.prescriber_name || 'ภก. ผู้สั่งใช้ยา',
-              patient_info?.pharmacist_name || 'ภก. สมชาย มีสุข (ภ. 12345)',
+              patient_info?.pharmacist_name || 'ภก. อภิโช โลมทอง (ภ. 34152)',
               patient_info?.purpose || 'รักษาอาการป่วยเบื้องต้น'
             ]
           );
