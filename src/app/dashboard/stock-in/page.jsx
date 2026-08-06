@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ExcelImportModal from '../../../components/ExcelImportModal';
-import { Download, Upload } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, FileText, CheckCircle2 } from 'lucide-react';
 import { downloadStockTemplate } from '../../../utils/excelStockHelper';
 
 export default function StockInPage() {
@@ -11,7 +11,12 @@ export default function StockInPage() {
   const [inventoryAlerts, setInventoryAlerts] = useState(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
 
-  // Stock-in Form states
+  // Goods Receipt Header States
+  const [supplierName, setSupplierName] = useState('บริษัท ยาอินไทย จำกัด');
+  const [receiptNo, setReceiptNo] = useState('');
+  const [receiptDate, setReceiptDate] = useState('');
+
+  // Drug Item Add Form States
   const [stockSearchQuery, setStockSearchQuery] = useState('');
   const [stockSuggestions, setStockSuggestions] = useState([]);
   const [selectedStockDrug, setSelectedStockDrug] = useState(null);
@@ -20,9 +25,27 @@ export default function StockInPage() {
   const [stockCost, setStockCost] = useState('');
   const [stockPrice, setStockPrice] = useState('');
   const [stockExpiry, setStockExpiry] = useState('');
+  const [itemError, setItemError] = useState('');
+
+  // Goods Receipt Cart / Items Table State
+  const [receiptItems, setReceiptItems] = useState([]);
+
+  // Financial & Tax States
+  const [vatMode, setVatMode] = useState('included'); // 'included', 'excluded', 'none'
+  const [discountInput, setDiscountInput] = useState('');
+
   const [formSuccess, setFormSuccess] = useState('');
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+
+  // Auto generate Goods Receipt No and Date on load
+  useEffect(() => {
+    const now = new Date();
+    const dStr = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('');
+    setReceiptNo(`GRN-${dStr}-${Math.floor(100 + Math.random() * 900)}`);
+    setReceiptDate(now.toISOString().slice(0, 10));
+    fetchInventoryAlerts();
+  }, []);
 
   // Fetch inventory alerts and stock-in history
   const fetchInventoryAlerts = async () => {
@@ -40,10 +63,6 @@ export default function StockInPage() {
     }
   };
 
-  useEffect(() => {
-    fetchInventoryAlerts();
-  }, []);
-
   // Drug search suggestion
   const handleStockSearchChange = async (val) => {
     setStockSearchQuery(val);
@@ -59,8 +78,8 @@ export default function StockInPage() {
 
   const generateLotNumber = (drug) => {
     const now = new Date();
-    const d = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('');
-    const t = [String(now.getHours()).padStart(2,'0'), String(now.getMinutes()).padStart(2,'0')].join('');
+    const d = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('');
+    const t = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')].join('');
     return `LOT-${d}-${drug.tmt_id}-${t}`;
   };
 
@@ -80,48 +99,139 @@ export default function StockInPage() {
     }
   };
 
-  // Submit stock-in
-  const handleStockSubmit = async (e) => {
+  // Add Item to Receiving Receipt Cart
+  const handleAddReceiptItem = (e) => {
     e.preventDefault();
+    setItemError('');
+
+    if (!selectedStockDrug) { setItemError('กรุณาเลือกตัวยาจากระบบ'); return; }
+    if (!lotNumber || !stockQty || !stockCost || !stockPrice || !stockExpiry) {
+      setItemError('กรุณากรอกข้อมูล ล็อต, จำนวน, ต้นทุน, ราคาขาย และวันหมดอายุให้ครบถ้วน');
+      return;
+    }
+
+    const qty = parseInt(stockQty, 10);
+    const cost = parseFloat(stockCost);
+    const price = parseFloat(stockPrice);
+
+    if (qty <= 0 || cost < 0 || price < 0) {
+      setItemError('จำนวนและราคาต้องเป็นตัวเลขที่ถูกต้อง');
+      return;
+    }
+
+    const newItem = {
+      id: Date.now() + Math.random(),
+      tmt_id: selectedStockDrug.tmt_id,
+      trade_name: selectedStockDrug.trade_name,
+      strength: selectedStockDrug.strength || '',
+      unit: selectedStockDrug.unit || 'ชิ้น',
+      lot_number: lotNumber,
+      quantity: qty,
+      cost_price: cost,
+      price: price,
+      expiry_date: stockExpiry,
+      itemTotalCost: qty * cost
+    };
+
+    setReceiptItems(prev => [...prev, newItem]);
+
+    // Reset item form
+    setSelectedStockDrug(null);
+    setStockSearchQuery('');
+    setLotNumber('');
+    setStockQty('');
+    setStockCost('');
+    setStockPrice('');
+    setStockExpiry('');
+  };
+
+  const handleRemoveReceiptItem = (id) => {
+    setReceiptItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Calculate Financial Breakdown
+  const financials = useMemo(() => {
+    const rawSubtotal = receiptItems.reduce((acc, item) => acc + item.itemTotalCost, 0);
+    const discount = Math.max(0, parseFloat(discountInput || 0));
+    const discountedSubtotal = Math.max(0, rawSubtotal - discount);
+
+    let preTaxValue = 0;
+    let vatAmount = 0;
+    let grandTotal = 0;
+
+    if (vatMode === 'included') {
+      preTaxValue = discountedSubtotal / 1.07;
+      vatAmount = discountedSubtotal - preTaxValue;
+      grandTotal = discountedSubtotal;
+    } else if (vatMode === 'excluded') {
+      preTaxValue = discountedSubtotal;
+      vatAmount = discountedSubtotal * 0.07;
+      grandTotal = discountedSubtotal + vatAmount;
+    } else { // 'none'
+      preTaxValue = discountedSubtotal;
+      vatAmount = 0;
+      grandTotal = discountedSubtotal;
+    }
+
+    return {
+      subtotal: rawSubtotal,
+      discount,
+      discountedSubtotal,
+      preTaxValue,
+      vatAmount,
+      grandTotal
+    };
+  }, [receiptItems, discountInput, vatMode]);
+
+  // Submit Complete Goods Receipt
+  const handleConfirmGoodsReceipt = async () => {
     setFormSuccess('');
     setFormError('');
 
-    if (!selectedStockDrug) { setFormError('กรุณาค้นหาและเลือกตัวยาที่ต้องการนำเข้าจากระบบ'); return; }
-    if (!lotNumber || !stockQty || !stockCost || !stockPrice || !stockExpiry) {
-      setFormError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return;
+    if (receiptItems.length === 0) {
+      setFormError('กรุณาเพิ่มรายการยาลงในใบรับอย่างน้อย 1 รายการ');
+      return;
     }
 
     setFormLoading(true);
+
     try {
-      const response = await fetch('/api/dashboard/inventory-alerts', {
+      const itemsToImport = receiptItems.map(item => ({
+        ...item,
+        supplier_name: supplierName,
+        receipt_no: receiptNo
+      }));
+
+      const res = await fetch('/api/products/bulk-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drug_id: selectedStockDrug.tmt_id,
-          lot_number: lotNumber,
-          quantity: parseInt(stockQty, 10),
-          cost_price: parseFloat(stockCost),
-          selling_price: parseFloat(stockPrice),
-          expiry_date: stockExpiry
-        })
+        body: JSON.stringify({ items: itemsToImport })
       });
-      const result = await response.json();
-      if (result.success) {
-        setFormSuccess(result.message);
-        setSelectedStockDrug(null); setStockSearchQuery(''); setLotNumber('');
-        setStockQty(''); setStockCost(''); setStockPrice(''); setStockExpiry('');
+
+      const json = await res.json();
+
+      if (json.success) {
+        setFormSuccess(`✓ บันทึกใบรับสินค้าเลขที่ ${receiptNo} สำเร็จเรียบร้อยแล้ว (${receiptItems.length} รายการ, ยอดรวม ฿${financials.grandTotal.toFixed(2)})`);
+        setReceiptItems([]);
+        setDiscountInput('');
         fetchInventoryAlerts();
+
+        // Regenerate new Receipt No
+        const now = new Date();
+        const dStr = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('');
+        setReceiptNo(`GRN-${dStr}-${Math.floor(100 + Math.random() * 900)}`);
       } else {
-        setFormError(result.error || 'เกิดข้อผิดพลาดในการนำเข้าล็อตยา');
+        setFormError(json.error || 'เกิดข้อผิดพลาดในการบันทึกใบรับสินค้า');
       }
-    } catch (error) {
-      setFormError('เกิดข้อผิดพลาดในการส่งข้อมูล');
+    } catch (err) {
+      console.error(err);
+      setFormError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
     } finally {
       setFormLoading(false);
     }
   };
 
-  const alertStats = React.useMemo(() => {
+  const alertStats = useMemo(() => {
     if (!inventoryAlerts) return { lowStockCount: 0, expiringCount: 0 };
     const lowStockCount = inventoryAlerts.low_stock_alerts?.length || 0;
     const expiry = inventoryAlerts.expiry_alerts;
@@ -137,8 +247,8 @@ export default function StockInPage() {
       {/* Page Header */}
       <div className="page-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 className="page-title">นำเข้าล็อตยา (Stock-In)</h1>
-          <p className="page-subtitle">บันทึกล็อตยานำเข้า ต้นทุน และวันหมดอายุสำหรับระบบ FEFO หรือนำเข้าเป็น Batch ผ่าน Excel</p>
+          <h1 className="page-title">ใบรับสินค้าเข้าคลัง (Goods Receipt Note - GRN)</h1>
+          <p className="page-subtitle">บันทึกล็อตยานำเข้า ต้นทุน วันหมดอายุ และบันทึกใบรับสินค้าพร้อมคำนวณภาษีและส่วนลดท้ายบิล</p>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -162,99 +272,306 @@ export default function StockInPage() {
         </div>
       </div>
 
-      {/* Two Column Grid — equal width */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+      {/* Two Column Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px', alignItems: 'start' }}>
 
-        {/* ── LEFT: Stock-In Form ── */}
-        <div className="dash-card">
-          <div className="dash-card-title">
-            <div className="dash-card-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>+</div>
-            บันทึกนำเข้าล็อตยาใหม่
-          </div>
+        {/* ── LEFT: Goods Receiving Document Form & Table ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          <form onSubmit={handleStockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-            {/* Drug Search */}
-            <div style={{ position: 'relative' }}>
-              <label className="form-label">ค้นหาเวชภัณฑ์ TMT</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="พิมพ์ชื่อยา หรือรหัส TMT 2 ตัวขึ้นไป..."
-                value={stockSearchQuery}
-                onChange={(e) => handleStockSearchChange(e.target.value)}
-              />
-              {stockSuggestions.length > 0 && (
-                <div className="autocomplete-dropdown">
-                  {stockSuggestions.map((drug) => (
-                    <div key={drug.tmt_id} className="autocomplete-item" onClick={() => selectSuggestion(drug)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ color: 'var(--text-primary)' }}>{drug.trade_name}</strong>
-                          {drug.strength && <span style={{ color: 'var(--text-secondary)', marginLeft: 5, fontSize: '11px' }}>{drug.strength}</span>}
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '10px' }}>TMT-{drug.tmt_id}</span>
-                        </div>
-                        {drug.price && Number(drug.price) > 0 && (
-                          <span style={{ fontSize: '11px', color: 'var(--teal-600)', fontWeight: 600, flexShrink: 0 }}>฿{Number(drug.price).toFixed(2)}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+          {/* Receipt Header Document Box */}
+          <div className="dash-card">
+            <div className="dash-card-title" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="dash-card-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
+                  <FileText size={18} />
                 </div>
-              )}
+                <div>
+                  <strong>เอกสารใบรับสินค้าเข้าคลัง</strong>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>ดูแลสินค้าทุกชิ้นให้มีราคาถูกต้อง ติดตามได้ และพร้อมขาย</div>
+                </div>
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--teal-600)', fontFamily: 'monospace', backgroundColor: 'var(--teal-50)', padding: '4px 10px', borderRadius: '8px' }}>
+                {receiptNo}
+              </span>
             </div>
 
-            {/* Selected drug chip */}
-            {selectedStockDrug && (
-              <div style={{ background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong style={{ color: 'var(--teal-700)' }}>{selectedStockDrug.trade_name}</strong>
-                  {selectedStockDrug.strength && <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '11px' }}>{selectedStockDrug.strength}</span>}
-                  <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '10px' }}>TMT-{selectedStockDrug.tmt_id}</span>
+            {/* Goods Receipt Meta Fields */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+              <div>
+                <label className="form-label">ผู้ส่งมอบ / ซัพพลายเออร์ (Supplier)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={supplierName}
+                  onChange={(e) => setSupplierName(e.target.value)}
+                  placeholder="เช่น บริษัท ยาอินไทย จำกัด"
+                />
+              </div>
+              <div>
+                <label className="form-label">วันที่รับสินค้า (Receipt Date)</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={receiptDate}
+                  onChange={(e) => setReceiptDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px dashed var(--border)', margin: '16px 0' }} />
+
+            {/* Drug Addition Form */}
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Plus size={16} color="var(--teal-600)" /> เพิ่มรายการยาเข้าใบรับสินค้า:
+            </div>
+
+            <form onSubmit={handleAddReceiptItem} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Search Drug */}
+              <div style={{ position: 'relative' }}>
+                <label className="form-label">ค้นหาเวชภัณฑ์ TMT / บาร์โค้ด</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="พิมพ์ชื่อยา หรือรหัส TMT 2 ตัวขึ้นไป..."
+                  value={stockSearchQuery}
+                  onChange={(e) => handleStockSearchChange(e.target.value)}
+                />
+                {stockSuggestions.length > 0 && (
+                  <div className="autocomplete-dropdown">
+                    {stockSuggestions.map((drug) => (
+                      <div key={drug.tmt_id} className="autocomplete-item" onClick={() => selectSuggestion(drug)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <strong style={{ color: 'var(--text-primary)' }}>{drug.trade_name}</strong>
+                            {drug.strength && <span style={{ color: 'var(--text-secondary)', marginLeft: 5, fontSize: '11px' }}>{drug.strength}</span>}
+                            <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '10px' }}>TMT-{drug.tmt_id}</span>
+                          </div>
+                          {drug.price && Number(drug.price) > 0 && (
+                            <span style={{ fontSize: '11px', color: 'var(--teal-600)', fontWeight: 600, flexShrink: 0 }}>฿{Number(drug.price).toFixed(2)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected drug chip */}
+              {selectedStockDrug && (
+                <div style={{ background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ color: 'var(--teal-700)' }}>{selectedStockDrug.trade_name}</strong>
+                    {selectedStockDrug.strength && <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '11px' }}>{selectedStockDrug.strength}</span>}
+                    <span style={{ color: 'var(--text-muted)', marginLeft: 6, fontSize: '10px' }}>TMT-{selectedStockDrug.tmt_id}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedStockDrug(null); setStockSearchQuery(''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: '0 4px' }}
+                  >×</button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setSelectedStockDrug(null); setStockSearchQuery(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: '0 4px' }}
-                >×</button>
+              )}
+
+              {/* Lot + Qty */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label className="form-label">หมายเลขล็อต (Lot No.)</label>
+                  <input type="text" className="form-input" placeholder="เช่น LOT-20250528-001" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} />
+                </div>
+                <div>
+                  <label className="form-label">จำนวนรับเข้า ({selectedStockDrug?.unit || 'ชิ้น'})</label>
+                  <input type="number" className="form-input" placeholder="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} min="1" />
+                </div>
+              </div>
+
+              {/* Cost + Price + Expiry */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div>
+                  <label className="form-label">ต้นทุน/ชิ้น (฿)</label>
+                  <input type="number" step="0.01" className="form-input" placeholder="0.00" value={stockCost} onChange={(e) => handleStockCostChange(e.target.value)} min="0" />
+                </div>
+                <div>
+                  <label className="form-label">ราคาขาย (฿)</label>
+                  <input type="number" step="0.01" className="form-input" placeholder="0.00" value={stockPrice} onChange={(e) => setStockPrice(e.target.value)} min="0" />
+                </div>
+                <div>
+                  <label className="form-label">วันหมดอายุ</label>
+                  <input type="date" className="form-input" value={stockExpiry} onChange={(e) => setStockExpiry(e.target.value)} />
+                </div>
+              </div>
+
+              {itemError && <div className="error-banner">⚠ {itemError}</div>}
+
+              <button type="submit" className="btn btn-outline" style={{ height: '42px', fontWeight: 700, borderColor: 'var(--teal-600)', color: 'var(--teal-600)' }}>
+                + เพิ่มรายการยาลงในใบรับ
+              </button>
+            </form>
+          </div>
+
+          {/* Receiving Items Table */}
+          <div className="dash-card">
+            <div className="dash-card-title">
+              <div className="dash-card-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>📋</div>
+              รายการยาในใบรับสินค้า ({receiptItems.length} รายการ)
+            </div>
+
+            {receiptItems.length === 0 ? (
+              <div className="empty-state" style={{ padding: '30px', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>📦</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>ยังไม่มีรายการยาในใบรับสินค้า กรุณาค้นหาและเพิ่มรายการยาด้านบน</div>
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '10px' }}>
+                <table className="data-table" style={{ fontSize: '12.5px' }}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>รายการยา</th>
+                      <th>เลขล็อต</th>
+                      <th style={{ textAlign: 'center' }}>จำนวน</th>
+                      <th style={{ textAlign: 'right' }}>ต้นทุน/หน่วย</th>
+                      <th style={{ textAlign: 'right' }}>รวมต้นทุน</th>
+                      <th style={{ textAlign: 'center' }}>จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {receiptItems.map((item, idx) => (
+                      <tr key={item.id}>
+                        <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                        <td>
+                          <strong style={{ color: 'var(--text-primary)' }}>{item.trade_name}</strong>
+                          {item.strength && <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px' }}>{item.strength}</span>}
+                        </td>
+                        <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{item.lot_number}</td>
+                        <td style={{ textAlign: 'center', fontWeight: 700 }}>{item.quantity} {item.unit}</td>
+                        <td style={{ textAlign: 'right' }}>฿{item.cost_price.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--teal-600)' }}>฿{item.itemTotalCost.toFixed(2)}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveReceiptItem(item.id)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                            title="ลบรายการนี้"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
-            {/* Lot + Qty */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div>
-                <label className="form-label">หมายเลขล็อต (Lot No.)</label>
-                <input type="text" className="form-input" placeholder="เช่น LOT-20250528-001" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} />
+            {/* Financial Summary & Tax Breakdown Box (Matching User Prompt Specs) */}
+            <div style={{
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '20px',
+              marginTop: '16px'
+            }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                💳 สรุปยอดรวมและภาษีมูลค่าเพิ่ม
               </div>
-              <div>
-                <label className="form-label">จำนวนรับเข้า ({selectedStockDrug?.unit || 'ชิ้น'})</label>
-                <input type="number" className="form-input" placeholder="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} min="1" />
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                ระบบคำนวณมูลค่าสินค้า ภาษี และยอดรวมสุทธิจากรายการโดยอัตโนมัติ คุณกรอกเฉพาะส่วนลดและเลือกว่าราคารวมภาษีหรือไม่
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+                {/* VAT Mode Selector */}
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>ภาษีมูลค่าเพิ่ม (VAT)</label>
+                  <select
+                    value={vatMode}
+                    onChange={(e) => setVatMode(e.target.value)}
+                    className="form-input"
+                    style={{ fontWeight: 600 }}
+                  >
+                    <option value="included">ราคารวมภาษีแล้ว (VAT Included)</option>
+                    <option value="excluded">ราคาไม่รวมภาษี (VAT Excluded +7%)</option>
+                    <option value="none">ไม่มีภาษี / ยกเว้น VAT (0%)</option>
+                  </select>
+                </div>
+
+                {/* Discount Field */}
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>ส่วนลดท้ายบิล (บาท)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-input"
+                    placeholder="0.00"
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value)}
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Exact Financial Rows */}
+              <div style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}>
+                  <span>มูลค่าสินค้า:</span>
+                  <strong style={{ fontFamily: 'monospace' }}>฿{financials.subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+
+                {financials.discount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#dc2626' }}>
+                    <span>ส่วนลดท้ายบิล:</span>
+                    <strong style={{ fontFamily: 'monospace' }}>-฿{financials.discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <span>ภาษีมูลค่าเพิ่ม (7%):</span>
+                  <strong style={{ fontFamily: 'monospace' }}>฿{financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+
+                <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>จำนวนเงินรวมทั้งสิ้น:</span>
+                  <span style={{ fontSize: '24px', fontWeight: 900, color: '#10b981', fontFamily: 'monospace' }}>
+                    ฿{financials.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Cost + Price + Expiry */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div>
-                <label className="form-label">ต้นทุน/ชิ้น (฿)</label>
-                <input type="number" step="0.01" className="form-input" placeholder="0.00" value={stockCost} onChange={(e) => handleStockCostChange(e.target.value)} min="0" />
-              </div>
-              <div>
-                <label className="form-label">ราคาขาย (฿)</label>
-                <input type="number" step="0.01" className="form-input" placeholder="0.00" value={stockPrice} onChange={(e) => setStockPrice(e.target.value)} min="0" />
-              </div>
-              <div>
-                <label className="form-label">วันหมดอายุ</label>
-                <input type="date" className="form-input" value={stockExpiry} onChange={(e) => setStockExpiry(e.target.value)} />
-              </div>
-            </div>
+            {formError && <div className="error-banner" style={{ marginTop: '16px' }}>⚠️ {formError}</div>}
+            {formSuccess && <div className="success-banner" style={{ marginTop: '16px' }}>✓ {formSuccess}</div>}
 
-            {formError && <div className="error-banner">⚠ {formError}</div>}
-            {formSuccess && <div className="success-banner">✓ {formSuccess}</div>}
-
-            <button type="submit" className="checkout-submit-btn" disabled={formLoading} style={{ height: '46px', marginTop: '4px' }}>
-              {formLoading ? 'กำลังบันทึก...' : 'ยืนยันบันทึกนำเข้าล็อตยา'}
+            {/* Confirm Goods Receipt Button */}
+            <button
+              type="button"
+              onClick={handleConfirmGoodsReceipt}
+              disabled={formLoading || receiptItems.length === 0}
+              className="checkout-submit-btn"
+              style={{
+                height: '52px',
+                marginTop: '16px',
+                fontSize: '16px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <CheckCircle2 size={20} />
+              {formLoading ? 'กำลังบันทึกใบรับสินค้า...' : `💾 ยืนยันบันทึกใบรับสินค้าเข้าคลัง (${receiptItems.length} รายการ - ฿${financials.grandTotal.toFixed(2)})`}
             </button>
-          </form>
+          </div>
+
         </div>
 
         {/* ── RIGHT: Alerts + History ── */}
@@ -281,7 +598,7 @@ export default function StockInPage() {
               </div>
             </div>
 
-            {/* Alert rows — color-coded by severity */}
+            {/* Alert rows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', maxHeight: '260px', overflowY: 'auto' }}>
               {alertsLoading ? (
                 <div className="loading-center" style={{ padding: '20px' }}>
@@ -290,7 +607,6 @@ export default function StockInPage() {
                 </div>
               ) : (
                 <>
-                  {/* 🔴 Critical: < 30 days */}
                   {inventoryAlerts?.expiry_alerts?.expiring_30_days?.map((lot, idx) => (
                     <div key={`e30-${idx}`} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -308,7 +624,6 @@ export default function StockInPage() {
                     </div>
                   ))}
 
-                  {/* 🟠 Warning: < 60 days */}
                   {inventoryAlerts?.expiry_alerts?.expiring_60_days?.map((lot, idx) => (
                     <div key={`e60-${idx}`} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -326,7 +641,6 @@ export default function StockInPage() {
                     </div>
                   ))}
 
-                  {/* 🟡 Caution: < 90 days */}
                   {inventoryAlerts?.expiry_alerts?.expiring_90_days?.map((lot, idx) => (
                     <div key={`e90-${idx}`} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -344,7 +658,6 @@ export default function StockInPage() {
                     </div>
                   ))}
 
-                  {/* 🔵 Low stock */}
                   {inventoryAlerts?.low_stock_alerts?.map((drug, idx) => (
                     <div key={`ls-${idx}`} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -378,7 +691,7 @@ export default function StockInPage() {
               <div className="dash-card-icon" style={{ background: '#f8fafc', color: 'var(--text-secondary)' }}>≡</div>
               ประวัตินำเข้าล็อตล่าสุด
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
               {alertsLoading ? (
                 <div className="loading-center"><div className="spinner"></div></div>
               ) : inventoryAlerts?.stock_in_history?.length > 0 ? (
