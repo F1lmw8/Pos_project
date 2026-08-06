@@ -941,28 +941,29 @@ export default function PosRegisterPage() {
             </div>
           </div>
 
-          {/* Dispensing Reason / Indication Input for GPP ข.ย. 11 Compliance (Only for Dangerous / Controlled Drugs) */}
-          {cartItemsArray.length > 0 && hasDangerousOrControlledDrugInCart && (
-            <div style={{ marginBottom: '10px', padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                📋 เหตุผลในการจ่ายยา / ข้อบ่งใช้ (GPP ข.ย. 11):
+          {/* Patient Symptom & Dispensing Reason Input (Only for Registered Customers/Patients) */}
+          {cartItemsArray.length > 0 && selectedCustomer && (
+            <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: 'var(--bg-surface)', borderRadius: '10px', border: '1.5px solid var(--teal-600)' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--teal-700)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                เหตุผลการจ่ายยา / อาการป่วย (บันทึกประวัติ {selectedCustomer.name}):
               </div>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '5px' }}>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
                 {[
                   'บรรเทาปวด/มีไข้',
+                  'ไอ/เจ็บคอ/มีน้ำมูก',
                   'ติดเชื้อแบคทีเรีย',
                   'ปวดข้อ/ปวดกล้ามเนื้อ',
-                  'ความดันโลหิตสูง',
-                  'ใช้ตามคำแนะนำเภสัชกร'
+                  'ท้องเสีย/ท้องอืด',
+                  'ผื่นคัน/แพ้ผิวหนัง'
                 ].map((reason) => (
                   <button
                     key={reason}
                     type="button"
                     onClick={() => setDispensingReason(reason)}
                     style={{
-                      fontSize: '10px',
+                      fontSize: '10.5px',
                       fontWeight: dispensingReason === reason ? 700 : 500,
-                      padding: '2px 8px',
+                      padding: '3px 9px',
                       borderRadius: '12px',
                       border: '1px solid var(--border)',
                       backgroundColor: dispensingReason === reason ? 'var(--teal-600)' : 'var(--bg-card)',
@@ -979,12 +980,12 @@ export default function PosRegisterPage() {
                 type="text"
                 value={dispensingReason}
                 onChange={(e) => setDispensingReason(e.target.value)}
-                placeholder="ระบุเหตุผลในการจ่ายยา..."
+                placeholder={`ระบุอาการป่วยของ ${selectedCustomer.name} เพื่อบันทึกประวัติ...`}
                 style={{
                   width: '100%',
-                  padding: '5px 8px',
-                  fontSize: '11px',
-                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  fontSize: '11.5px',
+                  borderRadius: '7px',
                   border: '1px solid var(--border)',
                   backgroundColor: 'var(--bg-card)',
                   color: 'var(--text-primary)',
