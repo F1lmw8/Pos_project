@@ -350,6 +350,17 @@ export default function PosRegisterPage() {
   // Calculations
   const cartItemsArray = useMemo(() => Object.values(cart), [cart]);
 
+  // Check if cart contains any Dangerous (ข.ย. 11) or Special Controlled (ข.ย. 10) drugs
+  const hasDangerousOrControlledDrugInCart = useMemo(() => {
+    return cartItemsArray.some(({ product }) => {
+      const group = (product.drug_group || product.category || '').toLowerCase();
+      const category = (product.category || '').toLowerCase();
+      const isDangerous = group.includes('อันตราย') || category.includes('อันตราย') || group.includes('ข.ย. 11') || group.includes('ข.ย.11');
+      const isControlled = group.includes('ควบคุมพิเศษ') || category.includes('ควบคุมพิเศษ') || group.includes('ข.ย. 10') || group.includes('ข.ย.10');
+      return isDangerous || isControlled;
+    });
+  }, [cartItemsArray]);
+
   const subtotal = useMemo(() => {
     return cartItemsArray.reduce((acc, item) => {
       const qty = parseInt(item.quantity, 10) || 0;
@@ -918,8 +929,8 @@ export default function PosRegisterPage() {
             </div>
           </div>
 
-          {/* Dispensing Reason / Indication Input for GPP ข.ย. 11 Compliance */}
-          {cartItemsArray.length > 0 && (
+          {/* Dispensing Reason / Indication Input for GPP ข.ย. 11 Compliance (Only for Dangerous / Controlled Drugs) */}
+          {cartItemsArray.length > 0 && hasDangerousOrControlledDrugInCart && (
             <div style={{ marginBottom: '10px', padding: '8px 10px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 📋 เหตุผลในการจ่ายยา / ข้อบ่งใช้ (GPP ข.ย. 11):
