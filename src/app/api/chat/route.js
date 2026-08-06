@@ -1,6 +1,7 @@
 import { generateText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
+import pool from '../../../utils/db';
 
 export const maxDuration = 60;
 
@@ -11,25 +12,15 @@ You are integrated into the "RDU App" (a Thai Pharmacy POS and drug information 
 CRITICAL: The user interacting with you is a licensed PHARMACIST, NOT a patient. You must provide responses at a professional clinical level, using appropriate medical terminology.
 
 # EXECUTION STEPS FOR THE AGENT (CHAIN-OF-THOUGHT)
-1. Extract entity: Identify the drug name and clinical context.
-2. Query Local Context: The frontend may pass the active drug's generic name in the context. Use it.
-3. Call RxNorm API: Invoke the get_rxcui tool to get the RxCUI ID.
-4. Call openFDA API: Invoke the get_fda_warnings tool using the retrieved RxCUI ID.
-5. Extract Medical Warnings: Parse the raw contraindications and warnings_and_precautions.
-6. Synthesize & Stream: Cross-reference the extracted warnings, translate the medical facts accurately into professional Thai suitable for a pharmacist.
+1. Extract entity: Identify the drug name, symptoms, or clinical query.
+2. Query Local Store Inventory: Refer to the REAL-TIME STORE INVENTORY list injected below.
+3. Priority Recommendation: Always prioritize recommending medications THAT ARE CURRENTLY IN STOCK in the pharmacy store! State the Trade Name, Active Ingredient, dosage, and stock quantity available.
+4. Call RxNorm / openFDA when checking specific drug safety or warnings.
+5. Synthesize & Stream: Translate medical facts accurately into professional Thai suitable for a pharmacist.
 
-# STRICT SAFETY GUARDRAILS (ZERO HALLUCINATION POLICY)
-- You have ZERO internal knowledge regarding drug-drug interactions or clinical contraindications. 
-- You must NEVER guess, assume, or fabricate whether a drug is safe or unsafe. 
-- If the external tools return no data, gracefully state in Thai that official clinical data is unavailable from FDA for this specific query.
-- IF data IS successfully retrieved, summarize it directly and professionally for the pharmacist. Do not treat them like a patient.
-- You must prevent any hallucination by adhering strictly to the text returned by the live APIs.
-
-# MANDATORY OUTPUT FORMAT (THAI LANGUAGE)
-- Respond in professional, objective, and clinical Thai.
-- Keep technical terms accurate and do not over-simplify them (include English medical terms in parentheses if necessary).
-- Every response must conclude with this exact clinical disclaimer:
-  "อ้างอิงข้อมูลจากฐานข้อมูลสากล (openFDA) สำหรับประกอบการตัดสินใจทางเภสัชกรรมเท่านั้น"
+# STRICT SAFETY GUARDRAILS
+- Always provide evidence-based clinical rationale.
+- When recommending drugs for symptoms (e.g. burns, fever, pain, GERD, allergies), check the store inventory list first and highlight matching in-stock products.
 `;
 
 export async function POST(req) {
@@ -44,6 +35,32 @@ export async function POST(req) {
       }
     }
     let systemPromptToUse = SYSTEM_PROMPT;
+
+    // Fetch Live Store Inventory Stock from PostgreSQL Database
+    try {
+      const stockRes = await pool.query(`
+        SELECT d.tmt_id, d.trade_name, d.active_ingredient, d.strength, d.unit, d.dosage_form, d.drug_type,
+               COALESCE(i.stock_quantity, 0) as stock_quantity, COALESCE(i.price, 0) as price
+        FROM drugs d
+        LEFT JOIN inventory i ON d.tmt_id = i.drug_id
+        WHERE d.fda_status <> 'deleted'
+        ORDER BY i.stock_quantity DESC
+      `);
+
+      if (stockRes.rows.length > 0) {
+        const stockSummaryText = stockRes.rows.map(item =>
+          `- ${item.trade_name} (ตัวยา: ${item.active_ingredient} ${item.strength || ''}) [คงเหลือ: ${item.stock_quantity} ${item.unit || 'ชิ้น'}, ราคา: ฿${parseFloat(item.price).toFixed(2)}]`
+        ).join('\n');
+
+        systemPromptToUse += `\n\n# REAL-TIME PHARMACY STORE INVENTORY (รายการยาและสินค้าที่มีจริงในคลังร้าน ณ ปัจจุบัน):\n` +
+          `เมื่อเภสัชกรสอบถามข้อแนะนำการจ่ายยา อาการป่วย หรือเคสผู้ป่วย (เช่น โดนน้ำร้อนลวก, ปวดศีรษะ, กรดไหลย้อน, ผื่นคัน ฯลฯ) ` +
+          `ให้ทำการวิเคราะห์เคสและแนะนำยารักษาที่เหมาะสม "โดยเลือกแนะนำยาที่มีอยู่ในคลังร้านตามรายการข้างล่างนี้เป็นอันดับแรกเสมอ" ` +
+          `ระบุชื่อทางการค้า (Trade Name), ตัวยาสำคัญ (Active Ingredient), ขนาด/ความแรง, และจำนวนคงเหลือที่มีในคลังอย่างชัดเจน:\n\n` +
+          stockSummaryText;
+      }
+    } catch (dbErr) {
+      console.error('Failed to query store inventory for AI:', dbErr);
+    }
 
     // Pre-fetch FDA data to bypass AI tool-calling bugs in Gemini 3.1 Flash Lite
     if (drugContext && drugContext.a) {
