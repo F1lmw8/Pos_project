@@ -19,19 +19,21 @@ export default function ThemeToggle({ style, iconOnly = false }) {
     localStorage.setItem('pharmacy_pos_theme', nextTheme);
   };
 
+  const isDark = theme === 'dark';
+
   return (
     <button
       type="button"
       onClick={toggleTheme}
-      title={theme === 'dark' ? 'สลับเป็นโหมดสว่าง (Light Mode)' : 'สลับเป็นโหมดมืด (Dark Mode)'}
+      title={isDark ? 'สลับเป็นโหมดสว่าง (Light Mode)' : 'สลับเป็นโหมดมืด (Dark Mode)'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         gap: iconOnly ? 0 : '8px',
-        backgroundColor: 'var(--bg-surface)',
-        color: 'var(--text-primary)',
-        border: '1px solid var(--border)',
+        backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
+        color: isDark ? '#f8fafc' : '#0f172a',
+        border: isDark ? '1px solid #334155' : '1px solid #cbd5e1',
         borderRadius: iconOnly ? '50%' : '20px',
         width: iconOnly ? '38px' : 'auto',
         height: '38px',
@@ -40,22 +42,23 @@ export default function ThemeToggle({ style, iconOnly = false }) {
         padding: iconOnly ? 0 : '6px 14px',
         fontSize: '12px',
         fontWeight: '700',
+        lineHeight: 1,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        boxShadow: 'var(--shadow-xs)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxSizing: 'border-box',
         ...style
       }}
     >
-      {theme === 'dark' ? (
-        <>
-          <Moon size={17} style={{ color: '#a78bfa' }} />
-          {!iconOnly && <span>โหมดมืด</span>}
-        </>
+      {isDark ? (
+        <Moon size={17} style={{ color: '#a78bfa', flexShrink: 0 }} />
       ) : (
-        <>
-          <Sun size={17} style={{ color: '#f59e0b' }} />
-          {!iconOnly && <span>โหมดสว่าง</span>}
-        </>
+        <Sun size={17} style={{ color: '#f59e0b', flexShrink: 0 }} />
+      )}
+      {!iconOnly && (
+        <span style={{ color: isDark ? '#f8fafc' : '#0f172a', whiteSpace: 'nowrap' }}>
+          {isDark ? 'โหมดมืด' : 'โหมดสว่าง'}
+        </span>
       )}
     </button>
   );
