@@ -2,8 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
+import ExcelImportModal from '../../../components/ExcelImportModal';
+import { Download, Upload } from 'lucide-react';
+import { downloadStockTemplate } from '../../../utils/excelStockHelper';
 
 export default function StockInPage() {
+  const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
   const [inventoryAlerts, setInventoryAlerts] = useState(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
 
@@ -131,10 +135,30 @@ export default function StockInPage() {
   return (
     <DashboardLayout>
       {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: '20px' }}>
+      <div className="page-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 className="page-title">นำเข้าล็อตยา (Stock-In)</h1>
-          <p className="page-subtitle">บันทึกล็อตยานำเข้า ต้นทุน และวันหมดอายุสำหรับระบบ FEFO</p>
+          <p className="page-subtitle">บันทึกล็อตยานำเข้า ต้นทุน และวันหมดอายุสำหรับระบบ FEFO หรือนำเข้าเป็น Batch ผ่าน Excel</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={downloadStockTemplate}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="ดาวน์โหลดเทมเพลต Excel"
+          >
+            <Download size={15} /> เทมเพลต Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsExcelImportOpen(true)}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Upload size={15} /> นำเข้าล็อตยาจาก Excel
+          </button>
         </div>
       </div>
 
@@ -381,6 +405,13 @@ export default function StockInPage() {
 
         </div>
       </div>
+
+      {/* Excel Import Modal */}
+      <ExcelImportModal
+        isOpen={isExcelImportOpen}
+        onClose={() => setIsExcelImportOpen(false)}
+        onImportSuccess={fetchInventoryAlerts}
+      />
     </DashboardLayout>
   );
 }

@@ -4,7 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import AddProductModal from '../../../components/AddProductModal';
 import ProductDetailModal from '../../../components/ProductDetailModal';
-import { Trash2 } from 'lucide-react';
+import ExcelImportModal from '../../../components/ExcelImportModal';
+import { Trash2, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { downloadStockTemplate, exportStockCardExcel } from '../../../utils/excelStockHelper';
 
 const modes = [
   { key: 'available', label: 'มีสินค้าพร้อมขาย' },
@@ -40,6 +42,7 @@ export default function StockMonitorPage() {
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const fetchStock = React.useCallback(async () => {
@@ -144,6 +147,36 @@ export default function StockMonitorPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={downloadStockTemplate}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="ดาวน์โหลดเทมเพลต Stock Card Excel มาตรฐาน"
+          >
+            <Download size={15} /> เทมเพลต Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsExcelImportOpen(true)}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="นำเข้าข้อมูลคลังยาและล็อตยาจากไฟล์ Excel"
+          >
+            <Upload size={15} /> นำเข้า Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => exportStockCardExcel(items)}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="ส่งออกรายงาน Stock Card เป็นไฟล์ Excel (.xlsx)"
+          >
+            <FileSpreadsheet size={15} /> ส่งออก Stock Card (.xlsx)
+          </button>
+
           <button
             onClick={() => setIsAddModalOpen(true)}
             style={{
@@ -342,7 +375,12 @@ export default function StockMonitorPage() {
             </table>
           </div>
         )}
-      </div>
+      {/* Excel Import Modal */}
+      <ExcelImportModal
+        isOpen={isExcelImportOpen}
+        onClose={() => setIsExcelImportOpen(false)}
+        onImportSuccess={fetchStock}
+      />
     </DashboardLayout>
   );
 }
