@@ -105,7 +105,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE product (with cascading cleanup)
+// DELETE product (GPP & Accounting Audit Compliant: Soft-delete if sales history exists)
 export async function DELETE(request, { params }) {
   const { id } = await params;
   try {
@@ -116,16 +116,27 @@ export async function DELETE(request, { params }) {
     }
     const tmtId = drugRes.rows[0].tmt_id;
 
-    // 2. Cascade delete dependent tables first to satisfy foreign key constraints
+    // 2. Check if product has sales history (sale_items)
+    const salesCheck = await pool.query('SELECT COUNT(*)::int AS count FROM sale_items WHERE drug_id = $1', [tmtId]);
+    const hasSalesHistory = salesCheck.rows[0].count > 0;
+
+    if (hasSalesHistory) {
+      // Soft Delete: Mark as discontinued & zero out active stock to protect GPP & Tax history
+      await pool.query("UPDATE drugs SET fda_status = 'discontinued' WHERE tmt_id = $1", [tmtId]);
+      await pool.query("UPDATE inventory SET stock_quantity = 0 WHERE drug_id = $1", [tmtId]);
+      return NextResponse.json({
+        success: true,
+        message: 'ยกเลิกการจำหน่ายยารายการนี้แล้ว (คงประวัติการขายและรายงาน GPP ตามกฎหมายเรียบร้อย)'
+      });
+    }
+
+    // 3. If no sales history exists (newly created test item), safe hard delete
     await pool.query('DELETE FROM controlled_drug_logs WHERE drug_id = $1', [tmtId]);
     await pool.query('DELETE FROM inventory_lots WHERE drug_id = $1', [tmtId]);
     await pool.query('DELETE FROM inventory WHERE drug_id = $1', [tmtId]);
-    await pool.query('DELETE FROM sale_items WHERE drug_id = $1', [tmtId]);
-
-    // 3. Delete from drugs table
     await pool.query('DELETE FROM drugs WHERE tmt_id = $1', [tmtId]);
 
-    return NextResponse.json({ success: true, message: 'ลบสินค้าออกจากคลังเรียบร้อยแล้ว' });
+    return NextResponse.json({ success: true, message: 'ลบสินค้าออกจากระบบเรียบร้อยแล้ว' });
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json({ success: false, error: 'ไม่สามารถลบสินค้าได้: ' + error.message }, { status: 500 });
