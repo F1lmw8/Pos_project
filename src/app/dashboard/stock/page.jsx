@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import AddProductModal from '../../../components/AddProductModal';
 import ProductDetailModal from '../../../components/ProductDetailModal';
+import { Trash2 } from 'lucide-react';
 
 const modes = [
   { key: 'available', label: 'มีสินค้าพร้อมขาย' },
@@ -70,6 +71,31 @@ export default function StockMonitorPage() {
     const timer = setTimeout(fetchStock, 250);
     return () => clearTimeout(timer);
   }, [fetchStock]);
+
+  const handleDeleteStockItem = async (item) => {
+    if (!confirm(`คุณต้องการลบสินค้า "${item.trade_name}" ออกจากคลังใช่หรือไม่?`)) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const productId = item.tmt_id || item.sku;
+      const res = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+        method: 'DELETE'
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        fetchStock();
+      } else {
+        setError(json.error || 'ลบสินค้าไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totals = useMemo(() => summary || {
     item_count: 0, sellable_units: 0, low_stock_count: 0, expiring_90_units: 0
@@ -269,19 +295,36 @@ export default function StockMonitorPage() {
                         </span>
                       </td>
                       <td className="td-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => setSelectedProduct(item)}
-                          style={{
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '6px',
-                            padding: '4px 10px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          รายละเอียด
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          <button
+                            onClick={() => setSelectedProduct(item)}
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '4px 10px', fontSize: '12px' }}
+                          >
+                            รายละเอียด
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteStockItem(item);
+                            }}
+                            className="btn btn-sm"
+                            style={{
+                              backgroundColor: '#fee2e2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              padding: '4px 10px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="ลบสินค้าออกจากคลัง"
+                          >
+                            <Trash2 size={13} /> ลบ
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
