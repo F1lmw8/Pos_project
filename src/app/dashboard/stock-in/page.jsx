@@ -541,14 +541,13 @@ export default function StockInPage() {
               </div>
             )}
 
-            {/* Premium Financial Summary & Tax Breakdown Box (Matching User Prompt Specs) */}
+            {/* Financial Summary & Tax Breakdown Box */}
             <div style={{
-              background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-surface) 100%)',
+              backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border)',
               borderRadius: '16px',
-              padding: '20px',
-              marginTop: '20px',
-              boxShadow: 'var(--shadow-sm)'
+              padding: '22px',
+              marginTop: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <Calculator size={18} color="var(--teal-600)" />
@@ -592,7 +591,7 @@ export default function StockInPage() {
                 </div>
               </div>
 
-              {/* Financial Summary Table Box */}
+              {/* Financial Summary Breakdown List */}
               <div style={{
                 backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
@@ -602,15 +601,15 @@ export default function StockInPage() {
                 flexDirection: 'column',
                 gap: '10px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: 'var(--text-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>มูลค่าสินค้า:</span>
-                  <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
+                  <strong style={{ fontFamily: 'monospace', fontSize: '15px', color: 'var(--text-primary)' }}>
                     ฿{financials.subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
 
                 {financials.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: '#dc2626' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px', color: '#dc2626' }}>
                     <span>ส่วนลดท้ายบิล:</span>
                     <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
                       -฿{financials.discount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -618,26 +617,30 @@ export default function StockInPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                  <span>ภาษีมูลค่าเพิ่ม (7%):</span>
-                  <strong style={{ fontFamily: 'monospace', fontSize: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13.5px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>ภาษีมูลค่าเพิ่ม (7%):</span>
+                  <strong style={{ fontFamily: 'monospace', fontSize: '15px', color: 'var(--text-primary)' }}>
                     ฿{financials.vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
 
                 <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '4px 0' }} />
 
+                {/* Grand Total Banner */}
                 <div style={{
                   display: 'flex',
                   justify: 'space-between',
                   alignItems: 'center',
-                  backgroundColor: 'var(--teal-50)',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--teal-100)'
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  padding: '14px 18px',
+                  borderRadius: '12px',
+                  gap: '12px'
                 }}>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--teal-900)' }}>จำนวนเงินรวมทั้งสิ้น:</span>
-                  <span style={{ fontSize: '26px', fontWeight: 900, color: '#059669', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: '#065f46', whiteSpace: 'nowrap' }}>
+                    จำนวนเงินรวมทั้งสิ้น:
+                  </span>
+                  <span style={{ fontSize: '26px', fontWeight: 900, color: '#047857', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                     ฿{financials.grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -652,22 +655,27 @@ export default function StockInPage() {
               type="button"
               onClick={handleConfirmGoodsReceipt}
               disabled={formLoading || receiptItems.length === 0}
-              className="checkout-submit-btn"
               style={{
-                height: '52px',
+                width: '100%',
+                height: '50px',
                 marginTop: '18px',
-                fontSize: '16px',
-                fontWeight: 800,
+                backgroundColor: formLoading || receiptItems.length === 0 ? 'var(--bg-muted)' : '#10b981',
+                color: formLoading || receiptItems.length === 0 ? 'var(--text-muted)' : '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 700,
+                cursor: formLoading || receiptItems.length === 0 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                borderRadius: '12px',
-                boxShadow: 'var(--shadow-md)'
+                boxShadow: formLoading || receiptItems.length === 0 ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.2s ease'
               }}
             >
-              <CheckCircle2 size={20} />
-              {formLoading ? 'กำลังบันทึกใบรับสินค้า...' : `💾 ยืนยันบันทึกใบรับสินค้าเข้าคลัง (${receiptItems.length} รายการ - ฿${financials.grandTotal.toFixed(2)})`}
+              <CheckCircle2 size={18} />
+              {formLoading ? 'กำลังบันทึกใบรับสินค้า...' : `ยืนยันบันทึกใบรับสินค้าเข้าคลัง (${receiptItems.length} รายการ)`}
             </button>
           </div>
 
