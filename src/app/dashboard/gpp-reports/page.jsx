@@ -362,21 +362,6 @@ export default function GppReportsPage() {
           </div>
         </div>
 
-          {/* Printable Signature Footer (Shown only when printing) */}
-          <div className="print-only" style={{ display: 'none', justifyContent: 'space-between', marginTop: '40px', fontSize: '12px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ marginBottom: '30px' }}>ลงชื่อ..........................................................ผู้รายงาน</p>
-              <p>( {storeSettings.pharmacistName} )</p>
-              <p>เภสัชกรผู้มีหน้าที่ปฏิบัติการ</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ marginBottom: '30px' }}>ลงชื่อ..........................................................ผู้รับรอง</p>
-              <p>( .......................................................... )</p>
-              <p>ผู้รับอนุญาตขายยา</p>
-            </div>
-          </div>
-        </div>
-
         {/* Store Settings Modal */}
         {showSettingsModal && (
           <div className="modal-backdrop" onClick={() => setShowSettingsModal(false)}>
