@@ -1,26 +1,31 @@
 # Agent Status
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 ## Current State
 
 - Repository path: `/Users/filmw8/project/POS_project`
 - App: Next.js 15 + React 19 pharmacy/POS and RDU drug information project named `rdu-app`.
 - Branch: `film`
-- Patient History Modal & Action Button Fixes: Fixed curved top corners of `PatientHistoryModal.jsx` (`borderTopLeftRadius: 18px`, `borderTopRightRadius: 18px`), integrated dynamic theme variables, upgraded table history button to high-contrast `btn-primary` styling with Lucide `<History />` icon, and replaced all emojis with Lucide React vector icons.
+- All features, stock sync fixes, tax calculation systems, dynamic store settings, and theme toggle enhancements are 100% completed, tested (HTTP 200 OK), committed, and pushed to GitHub branch `film`.
 
 ## Recent Work
 
-- **Fixed Modal Header & Curved Top Corners (`src/components/PatientHistoryModal.jsx`)**:
-  - Matched top header radius with outer modal card (`borderTopLeftRadius: 18px`, `borderTopRightRadius: 18px`), eliminating sharp rectangular corners and dark color mismatches.
-  - Replaced hardcoded colors with theme variables (`var(--bg-card)`, `var(--bg-surface)`, `var(--text-primary)`, `var(--text-secondary)`).
-  - Replaced emojis with Lucide vector icons (`History`, `User`, `Phone`, `CreditCard`, `AlertTriangle`, `Activity`, `ShoppingBag`, `Pill`, `X`).
-- **Upgraded Patient History Action Button (`src/app/dashboard/customers/page.jsx`)**:
-  - Replaced dark hardcoded button with crisp `btn-primary btn-sm` button featuring Lucide `<History size={14} />` icon.
+- **Clean Thai FDA Badges (`src/app/page.jsx`)**: Rendered GPP & FDA drug classification badges (`ยาสามัญประจำบ้าน`, `ยาอันตราย (ข.ย. 11)`, `ยาควบคุมพิเศษ (ข.ย. 10)`) on POS product cards without emojis.
+- **Registered Patient Symptom Input (`src/app/page.jsx`)**: Displayed patient symptom / dispensing reason log box strictly when a registered customer is selected, hiding for walk-in customers.
+- **Dynamic Store Settings Helper & Exports (`src/utils/storeSettings.js`, `src/utils/excelStockHelper.js`)**: Integrated dynamic store settings (`NONGFILM_MJU_Pharmacy`) into POS header, Admin sidebar, and Excel stock exports.
+- **Stock Quantity Sync Fix (`src/app/api/dashboard/inventory-stock/route.js`, `src/app/api/products/[id]/route.js`)**: Updated stock API to compute `sellable_quantity` using `GREATEST` fallback for lot upserts.
+- **Theme-Adaptive Modals (`src/components/ProductDetailModal.jsx`, `src/components/AddProductModal.jsx`)**: Applied CSS variables for theme adaptation.
+- **Theme Toggle Component (`src/components/ThemeToggle.jsx`)**: Restored clean pill button design with text and Moon/Sun icons in expanded mode, and 38x38px centered icon circle in collapsed sidebar mode.
+- **Sales Transaction Logs Page (`src/app/dashboard/sales-logs/page.jsx`)**: Added Pharmacist Name and Patient/Customer Name columns, and redesigned expanded rows into executive Receipt Breakdown Cards.
+- **Tax Calculation & Section 86 System (`src/app/dashboard/fda-tax-reports/page.jsx`)**: Replaced 6-card overview with Tax & Section 86 Revenue Code Compliance System, including ภ.พ. 30 calculations, 8-requirement checklist, full tax invoice modal, and real downloadable Excel (`.xlsx`) exporter.
 
 ## Verification
 
-- `curl -s "http://127.0.0.1:3000/dashboard/customers"` returned HTTP status 200.
+- `curl -s "http://127.0.0.1:3000"` returned HTTP status 200.
+- `curl -s "http://127.0.0.1:3000/dashboard/sales-logs"` returned HTTP status 200.
+- `curl -s "http://127.0.0.1:3000/dashboard/fda-tax-reports"` returned HTTP status 200.
+- `curl -s "http://127.0.0.1:3000/dashboard/add-product"` returned HTTP status 200.
 
 ## Next Agent Start Here
 
