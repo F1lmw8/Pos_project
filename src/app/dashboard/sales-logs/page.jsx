@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
-
+import { getStoreSettings } from '../../../utils/storeSettings';
 
 export default function SalesLogsPage() {
+  const [storeSettings, setStoreSettings] = useState(() => getStoreSettings());
   const [timeframe, setTimeframe] = useState('monthly'); // Default to monthly as requested to test day-filters!
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
@@ -171,8 +172,9 @@ export default function SalesLogsPage() {
                 <tr>
                   <th>วัน-เวลา</th>
                   <th>เลขบิล</th>
+                  <th>ผู้ป่วย / ลูกค้า</th>
                   <th className="td-center">ช่องทางชำระ</th>
-                  <th className="td-center">พนักงาน</th>
+                  <th>เภสัชกร / พนักงาน</th>
                   <th className="td-right">ส่วนลด (฿)</th>
                   <th className="td-right">ยอดชำระ (฿)</th>
                   <th className="td-center"></th>
@@ -185,16 +187,23 @@ export default function SalesLogsPage() {
                     const formattedDate = new Date(sale.transaction_date).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
                     const paymentBadgeClass = sale.payment_method === 'cash' ? 'badge-teal' : sale.payment_method === 'qr_promptpay' ? 'badge-blue' : sale.payment_method === 'true_wallet' ? 'badge-orange' : 'badge-purple';
                     const paymentLabel = sale.payment_method === 'cash' ? 'เงินสด' : sale.payment_method === 'qr_promptpay' ? 'PromptPay' : sale.payment_method === 'true_wallet' ? 'TrueWallet' : 'บัตร';
+                    const custName = sale.customer_name || sale.patient_name || 'ลูกค้าทั่วไป';
+                    const pharmName = storeSettings.pharmacistName || 'ภก. อภิโช โลมทอง (ภ. 34152)';
 
                     return (
                       <React.Fragment key={sale.id}>
                         <tr style={{ background: isExpanded ? 'var(--bg-muted)' : 'transparent' }}>
-                          <td style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{formattedDate}</td>
-                          <td className="td-mono">{sale.id}</td>
+                          <td style={{ color: 'var(--text-secondary)', fontSize: '12px', whiteSpace: 'nowrap' }}>{formattedDate}</td>
+                          <td className="td-mono" style={{ fontSize: '11.5px' }}>{sale.id}</td>
+                          <td>
+                            <span style={{ fontWeight: custName !== 'ลูกค้าทั่วไป' ? 700 : 500, color: custName !== 'ลูกค้าทั่วไป' ? 'var(--teal-600)' : 'var(--text-primary)', fontSize: '12px' }}>
+                              {custName}
+                            </span>
+                          </td>
                           <td className="td-center">
                             <span className={`badge ${paymentBadgeClass}`}>{paymentLabel}</span>
                           </td>
-                          <td className="td-center" style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{sale.staff_id || '-'}</td>
+                          <td style={{ color: 'var(--text-secondary)', fontSize: '11.5px', whiteSpace: 'nowrap' }}>{pharmName}</td>
                           <td className="td-right" style={{ color: 'var(--color-warning)', fontWeight: 600 }}>฿{sale.discount.toFixed(2)}</td>
                           <td className="td-right td-bold">฿{sale.total_amount.toFixed(2)}</td>
                           <td className="td-center">
@@ -210,38 +219,38 @@ export default function SalesLogsPage() {
                         {/* Expanded items row */}
                         {isExpanded && (
                           <tr className="expanded-row">
-                            <td colSpan="7" style={{ padding: '0 8px 8px' }}>
-                              <div className="expanded-inner">
-                                <div className="expanded-header">
-                                  <span>รายการยา · บิล {sale.id}</span>
-                                  <span>FEFO Lot</span>
+                            <td colSpan="8" style={{ padding: '8px 12px 14px' }}>
+                              <div className="expanded-inner" style={{ margin: 0, padding: '12px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                <div className="expanded-header" style={{ marginBottom: '8px', padding: '8px 12px', borderRadius: '6px' }}>
+                                  <span>รายการยาในบิล {sale.id} · ผู้ป่วย: <strong>{custName}</strong> · เภสัชกร: <strong>{pharmName}</strong></span>
+                                  <span>จัดยาล็อต FEFO</span>
                                 </div>
-                                <table className="data-table" style={{ fontSize: '12px' }}>
+                                <table className="data-table" style={{ fontSize: '12px', width: '100%', tableLayout: 'fixed' }}>
                                   <thead>
                                     <tr>
-                                      <th>ตัวยา / TMT</th>
-                                      <th className="td-center">ขนาด</th>
-                                      <th className="td-center">ล็อต</th>
-                                      <th className="td-center">จำนวน</th>
-                                      <th className="td-right">ราคา/หน่วย</th>
-                                      <th className="td-right">รวม</th>
+                                      <th style={{ width: '42%', paddingLeft: '12px' }}>ตัวยา / TMT</th>
+                                      <th className="td-center" style={{ width: '14%' }}>ขนาด</th>
+                                      <th className="td-center" style={{ width: '16%' }}>ล็อต</th>
+                                      <th className="td-center" style={{ width: '10%' }}>จำนวน</th>
+                                      <th className="td-right" style={{ width: '10%' }}>ราคา/หน่วย</th>
+                                      <th className="td-right" style={{ width: '8%', paddingRight: '12px' }}>รวม</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {sale.items && sale.items.length > 0 ? (
                                       sale.items.map((item, itemIdx) => (
                                         <tr key={itemIdx}>
-                                          <td>
-                                            <div className="td-bold">{item.trade_name}</div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TMT-{item.drug_id}</div>
+                                          <td style={{ paddingLeft: '12px' }}>
+                                            <div className="td-bold" style={{ fontSize: '12.5px' }}>{item.trade_name}</div>
+                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>TMT-{String(item.drug_id).replace(/^TMT-/, '')}</div>
                                           </td>
                                           <td className="td-center" style={{ color: 'var(--text-secondary)' }}>{item.strength} {item.unit}</td>
                                           <td className="td-center">
-                                            <span className="badge badge-gray td-mono">{item.lot_number}</span>
+                                            <span className="badge badge-gray td-mono">{item.lot_number || 'LOT-DEFAULT'}</span>
                                           </td>
                                           <td className="td-center" style={{ fontWeight: 700, color: 'var(--teal-600)' }}>{item.quantity}</td>
                                           <td className="td-right" style={{ color: 'var(--text-secondary)' }}>฿{item.unit_price.toFixed(2)}</td>
-                                          <td className="td-right td-bold">฿{item.subtotal.toFixed(2)}</td>
+                                          <td className="td-right td-bold" style={{ paddingRight: '12px' }}>฿{item.subtotal.toFixed(2)}</td>
                                         </tr>
                                       ))
                                     ) : (
@@ -264,7 +273,7 @@ export default function SalesLogsPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="7">
+                    <td colSpan="8">
                       <div className="empty-state">
                         <div className="empty-icon">≡</div>
                         <div>ไม่พบประวัติธุรกรรมในช่วงเวลานี้</div>

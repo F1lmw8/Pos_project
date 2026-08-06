@@ -324,7 +324,7 @@ export async function GET(request) {
       };
     }
 
-    // 6. Fetch Sales Logs (Transactions history with itemized lots & cashier tracking)
+    // 6. Fetch Sales Logs (Transactions history with itemized lots & customer/cashier tracking)
     const salesLogsQuery = await pool.query(`
       SELECT 
         s.id, 
@@ -332,8 +332,11 @@ export async function GET(request) {
         s.total_amount::numeric as total_amount, 
         s.payment_method, 
         s.staff_id, 
+        s.customer_id,
+        c.name AS customer_name,
         s.discount::numeric as discount
       FROM sales s
+      LEFT JOIN customers c ON s.customer_id = c.id
       WHERE s.transaction_date > $1 AND s.transaction_date <= $2
       ORDER BY s.transaction_date DESC
     `, [startTime, endTime]);
@@ -364,6 +367,8 @@ export async function GET(request) {
         total_amount: parseFloat(s.total_amount),
         payment_method: s.payment_method,
         staff_id: s.staff_id,
+        customer_id: s.customer_id,
+        customer_name: s.customer_name || 'ลูกค้าทั่วไป',
         discount: parseFloat(s.discount),
         items: []
       };
