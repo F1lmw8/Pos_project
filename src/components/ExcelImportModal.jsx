@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FileSpreadsheet, Download, Upload, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { downloadStockTemplate, parseExcelFile } from '../utils/excelStockHelper';
 
-export default function ExcelImportModal({ isOpen, onClose, onImportSuccess }) {
+export default function ExcelImportModal({ isOpen, onClose, onImportSuccess, onLoadToReceipt }) {
   const [file, setFile] = useState(null);
   const [parsedData, setParsedData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,12 @@ export default function ExcelImportModal({ isOpen, onClose, onImportSuccess }) {
 
   const handleConfirmImport = async () => {
     if (parsedData.length === 0) return;
+
+    if (onLoadToReceipt) {
+      onLoadToReceipt(parsedData);
+      onClose();
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -210,7 +216,7 @@ export default function ExcelImportModal({ isOpen, onClose, onImportSuccess }) {
             disabled={loading || parsedData.length === 0}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {loading ? 'กำลังบันทึกข้อมูล...' : `🚀 ยืนยันการนำเข้า (${parsedData.length} รายการ)`}
+            {loading ? 'กำลังประมวลผล...' : onLoadToReceipt ? `📋 ดึงเข้าใบรับสินค้า (${parsedData.length} รายการ - เลือกภาษี/ส่วนลด)` : `🚀 ยืนยันนำเข้าสต็อก (${parsedData.length} รายการ)`}
           </button>
         </div>
       </div>

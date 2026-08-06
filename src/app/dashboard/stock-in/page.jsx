@@ -212,6 +212,26 @@ export default function StockInPage() {
     };
   }, [receiptItems, discountInput, vatMode]);
 
+  // Handle Excel Import -> Load into Goods Receipt Document Form
+  const handleLoadExcelToReceipt = (parsedData) => {
+    const formatted = parsedData.map((item, idx) => ({
+      id: Date.now() + idx + Math.random(),
+      tmt_id: item.tmt_id || `EXCEL-${idx + 100}`,
+      trade_name: item.trade_name || item.name || 'ไม่ระบุชื่อ',
+      strength: item.strength || '',
+      unit: item.unit || 'กล่อง',
+      lot_number: item.lot_number || `LOT-EXCEL-${idx + 1}`,
+      quantity: parseInt(item.quantity || 1, 10),
+      cost_price: parseFloat(item.cost_price || (item.price ? item.price * 0.7 : 0)),
+      price: parseFloat(item.price || 0),
+      expiry_date: item.expiry_date || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      itemTotalCost: parseInt(item.quantity || 1, 10) * parseFloat(item.cost_price || (item.price ? item.price * 0.7 : 0))
+    }));
+
+    setReceiptItems(formatted);
+    setFormSuccess(`✓ ดึงข้อมูลจาก Excel ${formatted.length} รายการ เข้าสู่ใบรับสินค้าสำเร็จ! สามารถเลือกภาษี (VAT) และส่วนลดท้ายบิลด้านล่าง ก่อนกดบันทึกเข้าสต็อก`);
+  };
+
   // Submit Complete Goods Receipt
   const handleConfirmGoodsReceipt = async () => {
     setFormSuccess('');
@@ -831,6 +851,7 @@ export default function StockInPage() {
         isOpen={isExcelImportOpen}
         onClose={() => setIsExcelImportOpen(false)}
         onImportSuccess={fetchInventoryAlerts}
+        onLoadToReceipt={handleLoadExcelToReceipt}
       />
     </DashboardLayout>
   );
