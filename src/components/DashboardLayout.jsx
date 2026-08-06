@@ -19,6 +19,7 @@ import {
   Settings
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { getStoreSettings } from '../utils/storeSettings';
 
 const navItems = [
   {
@@ -55,8 +56,10 @@ const navItems = [
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [storeSettings, setStoreSettings] = useState(() => getStoreSettings());
 
   useEffect(() => {
+    setStoreSettings(getStoreSettings());
     const saved = localStorage.getItem('pharmacy_sidebar_collapsed');
     if (saved === 'true') {
       setIsCollapsed(true);
@@ -103,7 +106,7 @@ export default function DashboardLayout({ children }) {
         }}>
           {!isCollapsed ? (
             <>
-              <Link href="/" title="ไปที่หน้าขาย POS" style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Link href="/" title="ไปที่หน้าขาย POS" style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 <div style={{
                   width: '36px',
                   height: '36px',
@@ -119,12 +122,12 @@ export default function DashboardLayout({ children }) {
                 }}>
                   <Store size={18} />
                 </div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                    RDU Pharmacy
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {storeSettings.storeName || 'NONGFILM_MJU_Pharmacy'}
                   </div>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '1px' }}>
-                    Admin Portal
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '1px' }}>
+                    {storeSettings.branchName || 'Admin Portal'}
                   </div>
                 </div>
               </Link>

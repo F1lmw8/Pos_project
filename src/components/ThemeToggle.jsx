@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeToggle({ style }) {
+export default function ThemeToggle({ style, showText = false }) {
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
@@ -27,22 +27,31 @@ export default function ThemeToggle({ style }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justify: 'center',
         gap: '6px',
-        backgroundColor: theme === 'dark' ? '#172822' : '#e2e8f0',
-        color: theme === 'dark' ? '#34d399' : '#0f172a',
-        border: theme === 'dark' ? '1px solid #1f3d33' : '1px solid #cbd5e1',
-        borderRadius: '20px',
-        padding: '6px 14px',
-        fontSize: '12px',
-        fontWeight: '700',
+        width: showText ? 'auto' : '38px',
+        height: '38px',
+        borderRadius: showText ? '20px' : '50%',
+        padding: showText ? '0 14px' : 0,
+        backgroundColor: 'var(--bg-surface)',
+        color: 'var(--text-primary)',
+        border: '1px solid var(--border)',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: 'var(--shadow-xs)',
         ...style
       }}
     >
-      {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-      <span>{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
+      {theme === 'dark' ? (
+        <Sun size={18} style={{ color: '#f59e0b' }} />
+      ) : (
+        <Moon size={18} style={{ color: '#6366f1' }} />
+      )}
+      {showText && (
+        <span style={{ fontSize: '12px', fontWeight: 700 }}>
+          {theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}
+        </span>
+      )}
     </button>
   );
 }

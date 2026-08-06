@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx';
+import { getStoreSettings } from './storeSettings';
 
 /**
  * Downloads Official Pharmacy & Hospital Excel Template (.xlsx)
  * Matches Hospital/Clinic Stock Card Standards with Automatic Formulas
  */
 export function downloadStockTemplate() {
+  const settings = getStoreSettings();
   const headers = [
     'ลำดับ',
     'รายการยาและเวชภัณฑ์',
@@ -86,7 +88,8 @@ export function downloadStockTemplate() {
 /**
  * Exports Active Inventory & Lot Stock Card to Excel (.xlsx)
  */
-export function exportStockCardExcel(items = [], storeName = 'ร้านยารู้เรื่องยา RDU') {
+export function exportStockCardExcel(items = [], storeName = null) {
+  const finalStoreName = storeName || getStoreSettings().storeName;
   const headers = [
     'ลำดับ',
     'รายการยาและเวชภัณฑ์',
@@ -136,7 +139,7 @@ export function exportStockCardExcel(items = [], storeName = 'ร้านยา
   });
 
   const wsData = [
-    [`รายงานบัญชีสต็อกยาและคลังเวชภัณฑ์ (Stock Card Report) - ${storeName}`],
+    [`รายงานบัญชีสต็อกยาและคลังเวชภัณฑ์ (Stock Card Report) - ${finalStoreName}`],
     [`วันที่ส่งออก: ${new Date().toLocaleDateString('th-TH')} | จำนวนรายการ: ${items.length} รายการ`],
     [],
     headers,

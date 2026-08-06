@@ -7,6 +7,7 @@ import ReceiptModal from '../components/ReceiptModal';
 import ControlledDrugModal from '../components/ControlledDrugModal';
 import PatientHistoryModal from '../components/PatientHistoryModal';
 import ThemeToggle from '../components/ThemeToggle';
+import { getStoreSettings } from '../utils/storeSettings';
 import {
   Store,
   Users,
@@ -105,7 +106,10 @@ export default function PosRegisterPage() {
     }
   };
 
+  const [storeSettings, setStoreSettings] = useState(() => getStoreSettings());
+
   useEffect(() => {
+    setStoreSettings(getStoreSettings());
     fetchProducts();
     fetchCustomers();
   }, []);
@@ -512,8 +516,8 @@ export default function PosRegisterPage() {
             <div className="brand-icon">
               <Store size={20} />
             </div>
-            RDU Pharmacy POS
-            <span className="brand-badge">Front Counter</span>
+            {storeSettings.storeName || 'NONGFILM_MJU_Pharmacy'}
+            <span className="brand-badge">{storeSettings.branchName || 'Front Counter'}</span>
           </h1>
           <div className="header-status">
             <ThemeToggle />
