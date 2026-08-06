@@ -41,7 +41,7 @@ export default function ThemeToggle({ style }) {
         ...style
       }}
     >
-      {theme === 'dark' ? <Moon size={15} /> : <Sun size={15} />}
+      {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
       <span>{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
     </button>
   );

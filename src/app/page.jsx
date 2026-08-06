@@ -497,9 +497,11 @@ export default function PosRegisterPage() {
       {/* LEFT SECTION: Search & Drug Products Grid */}
       <section className="catalogue-section">
         <header className="pos-header">
-          <h1 className="brand-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Store size={22} style={{ color: 'var(--teal-600)' }} />
-            CSMJU_Pharmacy
+          <h1 className="brand-title">
+            <div className="brand-icon">
+              <Store size={20} />
+            </div>
+            RDU Pharmacy POS
             <span className="brand-badge">Front Counter</span>
           </h1>
           <div className="header-status">

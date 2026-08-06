@@ -176,9 +176,9 @@ body {
 .brand-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.3px;
 }
@@ -187,23 +187,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   background: var(--teal-600);
   color: white;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   font-size: 16px;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
 }
 
 .brand-badge {
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--teal-700);
   background: var(--teal-50);
   border: 1px solid var(--teal-100);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
 }
 

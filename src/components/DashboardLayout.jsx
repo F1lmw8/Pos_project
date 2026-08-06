@@ -99,17 +99,32 @@ export default function DashboardLayout({ children }) {
           flexDirection: isCollapsed ? 'column' : 'row',
           alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
-          gap: isCollapsed ? '8px' : '8px'
+          gap: isCollapsed ? '8px' : '10px'
         }}>
           {!isCollapsed ? (
             <>
-              <Link href="/" title="ไปที่หน้าขาย POS" style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}>
+              <Link href="/" title="ไปที่หน้าขาย POS" style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  minWidth: '36px',
+                  minHeight: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--teal-600)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(13,148,136,0.25)'
+                }}>
+                  <Store size={18} />
+                </div>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                    CSMJU_Pharmacy
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
+                    RDU Pharmacy
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <Store size={12} /> สาขาหลัก Pharmacy
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '1px' }}>
+                    Admin Portal
                   </div>
                 </div>
               </Link>
@@ -135,18 +150,19 @@ export default function DashboardLayout({ children }) {
             </>
           ) : (
             <>
-              <Link href="/" title="CSMJU_Pharmacy (ไปหน้า POS)" style={{ textDecoration: 'none' }}>
+              <Link href="/" title="RDU Pharmacy (ไปหน้า POS)" style={{ textDecoration: 'none' }}>
                 <div style={{
                   width: '44px',
                   height: '44px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--teal-50)',
-                  color: 'var(--teal-700)',
-                  border: '1px solid var(--border)',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--teal-600)',
+                  color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: 'var(--shadow-xs)'
+                  boxShadow: '0 2px 8px rgba(13,148,136,0.25)'
                 }}>
                   <Store size={22} />
                 </div>
