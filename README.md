@@ -1,101 +1,108 @@
-# 🏥 POS & RDU Pharmacy Web Application
+# RDU Pharmacy POS — Prototype โปรเจคจบ
 
-ระบบจัดการร้านขายยาและข้อมูลยา RDU (Rational Drug Use) พัฒนาด้วย Next.js (App Router), React และ PostgreSQL
+ระบบขายหน้าร้าน (Point of Sale) และจัดการร้านขายยา ที่ออกแบบตามแนวคิด **RDU (Rational Drug Use)** และมาตรฐาน **GPP (Good Pharmacy Practice)** สำหรับร้านยาในประเทศไทย
 
----
-
-## 🚀 ขั้นตอนการติดตั้งและรันโปรเจกต์สำหรับทีมงาน (Team Getting Started)
-
-ทำตามขั้นตอนง่ายๆ ด้านล่างนี้เพื่อรันโปรเจกต์บนเครื่องของคุณ:
-
-### 1. เตรียมโปรแกรมที่ต้องใช้ (Prerequisites)
-- [Node.js](https://nodejs.org/) (แนะนำเวอร์ชัน 18 ขึ้นไป)
-- [PostgreSQL](https://www.postgresql.org/) (สำหรับฐานข้อมูล local)
-- [SourceTree](https://www.sourcetreeapp.com/) (สำหรับใช้งาน Git)
+> **สถานะโปรเจค:** Prototype
+> repo นี้คือ prototype แรกของโปรเจคจบ เดิมตั้งใจจะทำเป็นระบบ POS ร้านยาแบบเต็มรูปแบบ พัฒนาไปแล้วราว 40–50% ของขอบเขตทั้งหมด ต่อมาได้เปลี่ยนหัวข้อโปรเจคจบไปเป็น **Pharmacy Label System** ([chalakya.in.th](https://chalakya.in.th)) แต่ฟังก์ชันที่ทำเสร็จในนี้ยังใช้งานได้จริงตามที่อธิบายด้านล่าง
 
 ---
 
-### 2. ดาวน์โหลดโปรเจกต์และติดตั้ง Dependencies
-1. Clone โปรเจกต์ผ่าน SourceTree หรือใช้คำสั่ง:
-   ```bash
-   git clone <URL_REPOSITORY>
-   ```
-2. เปิด Terminal ในโฟลเดอร์โปรเจกต์ แล้วรันคำสั่งติดตั้งแพ็กเกจ:
-   ```bash
-   npm install
-   ```
+## ฟีเจอร์หลัก
+
+### 🛒 หน้าขาย POS
+- ค้นหายาได้ทั้งชื่อการค้า ชื่อสามัญ และ **ชื่อภาษาไทยแบบสะกดตามเสียง** (เช่น "พารา", "อะม็อกซี่" → paracetamol, amoxicillin)
+- ฐานข้อมูลยาอ้างอิงรหัส **TMT (Thai Medicines Terminology)** รวมมากกว่า 35,000 รายการ
+- ป้ายประเภทยาตามกฎหมาย: ยาสามัญประจำบ้าน / ยาอันตราย (ข.ย. 11) / ยาควบคุมพิเศษ (ข.ย. 10)
+- เลือกผู้ป่วยที่ลงทะเบียนไว้ ระบบ **แจ้งเตือนเมื่อสั่งยาที่ผู้ป่วยแพ้** และบันทึกอาการหรือเหตุผลการจ่ายยาเมื่อตะกร้ามียาอันตรายหรือยาควบคุม
+- ชำระเงินด้วยเงินสดหรือ **PromptPay QR** (สร้าง payload ตามมาตรฐาน EMVCo เอง) พร้อมใบเสร็จ
+- ตัดสต็อกแบบ **FEFO (First-Expire, First-Out)** ขายล็อตที่หมดอายุก่อนเสมอ และไม่ขายล็อตที่หมดอายุแล้ว
+
+### 🤖 AI Clinical Assistant
+- แชทบอทสำหรับ **เภสัชกร** (ไม่ใช่ผู้ป่วย) ใช้ Vercel AI SDK กับ Google Gemini
+- ดึงข้อมูลจริงจาก **RxNorm** (หา RxCUI) และ **openFDA Drug Label** (ข้อห้ามใช้ คำเตือน) แล้วสรุปเป็นภาษาไทย
+- ตั้ง guardrail แบบ **zero-hallucination** ให้ตอบจากข้อมูล API เท่านั้น ถ้าไม่พบข้อมูลก็แจ้งตรง ๆ
+- รู้สต็อกจริงของร้านจาก PostgreSQL เมื่อแนะนำยาตามอาการจะเสนอยาที่มีในร้านก่อน
+
+### 📦 คลังสินค้า
+- **สินค้าคงเหลือ**: ดูสต็อกแยกตามล็อตและวันหมดอายุ มีจุดสั่งซื้อซ้ำ (reorder point) และแจ้งเตือนยาใกล้หมดหรือใกล้หมดอายุ
+- **เพิ่มสินค้าใหม่**: ค้นข้อมูลทะเบียนยาจากฐานข้อมูลของ อย. แล้วกรอกให้อัตโนมัติ
+- **ใบรับสินค้า (GRN)**: รับล็อตยาเข้าคลังด้วยการสแกนบาร์โค้ด คำนวณ VAT และส่วนลด
+- **Import / Export Excel**: นำเข้าสต็อกและล็อตจากไฟล์ `.xlsx` และส่งออก Stock Card (มีไฟล์ตัวอย่างใน `public/`)
+
+### 📊 รายงานและเอกสาร
+- **Dashboard**: สรุปยอดขาย กำไร และสินค้าขายดี แสดงเป็นกราฟด้วย Recharts
+- **ประวัติธุรกรรม**: รายการขายทั้งหมด แยกตามรายการยา ล็อต เภสัชกร และลูกค้า
+- **รายงาน GPP**: บัญชี ข.ย. 9 (ซื้อยา), ข.ย. 10 (ขายยาควบคุมพิเศษ), ข.ย. 11 (ขายยาอันตราย)
+- **ภาษี**: คำนวณ ภ.พ. 30 และออกใบกำกับภาษีตาม ม.86 แห่งประมวลรัษฎากร ส่งออกเป็น Excel ได้
+
+### 👤 อื่น ๆ
+- **ทะเบียนผู้ป่วย**: ข้อมูลผู้ป่วย ประวัติแพ้ยา และประวัติการซื้อยา
+- **ตั้งค่าร้าน**: ชื่อร้านและเภสัชกรผู้ปฏิบัติการ
+- โหมดสว่าง/มืด (Light / Dark)
 
 ---
 
-### 3. ตั้งค่าไฟล์ Environment Variables (`.env`)
-1. คัดลอกไฟล์ `.env.example` แล้วเปลี่ยนชื่อเป็น `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-2. เปิดไฟล์ `.env` แล้วแก้ไขข้อมูลให้ตรงกับเครื่องของคุณ:
-   - `DATABASE_URL`: URL สำหรับเชื่อมต่อ PostgreSQL (เช่น `postgresql://postgres:password@localhost:5432/pos_db`)
-   - `GOOGLE_GENERATIVE_AI_API_KEY`: API Key ของ Gemini (สอบถาม key จากเพื่อนในทีม)
+## Tech Stack
 
-> ⚠️ **คำเตือน**: ห้าม Commit หรือ Push ไฟล์ `.env` ขึ้น Git เด็ดขาดเพื่อความปลอดภัย!
+| ส่วน | เทคโนโลยี |
+|---|---|
+| Framework | Next.js 15 (App Router), React 19 |
+| Database | PostgreSQL (`pg`) |
+| AI | Vercel AI SDK, Google Gemini |
+| External APIs | RxNorm (NLM), openFDA, ฐานข้อมูลผลิตภัณฑ์ อย. |
+| UI | CSS, lucide-react, Recharts |
+| อื่น ๆ | SheetJS (`xlsx`), `qrcode` (PromptPay) |
 
----
+## โครงสร้างโปรเจค
 
-### 4. Setup ฐานข้อมูล (Database Setup)
-รันไฟล์ Script เพื่อสร้าง Schema และสร้างข้อมูลเริ่มต้น (Seed Data):
-
-```bash
-# 1. รันไฟล์สร้างตารางใน PostgreSQL
-psql -U postgres -d your_db_name -f db/schema.sql
-
-# 2. รันไฟล์สคริปต์ลงข้อมูลตัวอย่าง (Seed Data)
-node db/seed.cjs
+```
+src/
+├── app/
+│   ├── page.jsx               # หน้าขาย POS
+│   ├── drug/[id]/             # รายละเอียดยา + RDU
+│   ├── dashboard/             # หลังบ้าน: ยอดขาย, สต็อก, GRN, GPP, ภาษี, ผู้ป่วย, ตั้งค่า
+│   └── api/                   # products, sales, customers, chat, fda/lookup, dashboard/*
+├── components/                # ChatbotWidget, ReceiptModal, ExcelImportModal, ...
+├── utils/                     # safetyEngine, rduMatcher, promptpay, excelStockHelper, db
+└── data/                      # ข้อมูลยา (TMT) และ monograph
+db/                            # schema.sql, seed scripts, migrations
 ```
 
----
+## เริ่มต้นใช้งาน
 
-### 5. เริ่มรันโปรเจกต์ (Run Development Server)
-รันคำสั่ง:
+**สิ่งที่ต้องมี:** Node.js 20+ และ PostgreSQL
+
 ```bash
+# 1. ติดตั้ง dependencies
+npm install
+
+# 2. ตั้งค่า environment
+cp .env.example .env
+#    แก้ DATABASE_URL และ GOOGLE_GENERATIVE_AI_API_KEY
+
+# 3. สร้างตาราง (seed.cjs รัน schema.sql ให้) และใส่ข้อมูลตัวอย่าง
+node db/seed.cjs
+node db/seed_lots.cjs
+
+# 4. รัน dev server
 npm run dev
 ```
-จากนั้นเปิดเบราว์เซอร์ไปที่: [http://localhost:3000](http://localhost:3000)
+
+เปิด http://localhost:3000 (หน้าขาย POS) และ http://localhost:3000/dashboard (หลังบ้าน)
+
+## ข้อจำกัดของ Prototype
+
+- ยังไม่มีระบบ login หรือแยกสิทธิ์ผู้ใช้
+- ยังไม่ได้ deploy ขึ้น production
+- PromptPay ID ยังกำหนดตายตัวในโค้ด (`src/app/page.jsx`) ยังไม่ได้ย้ายไปไว้ในหน้าตั้งค่า
+- ชำระเงินด้วย PromptPay ได้แค่สร้าง QR ยังไม่ได้เชื่อมระบบยืนยันการโอนอัตโนมัติ
+- คำตอบของ AI ใช้ประกอบการตัดสินใจของเภสัชกรเท่านั้น ไม่ใช่คำแนะนำทางการแพทย์
+
+## โปรเจคที่ต่อยอด
+
+แนวคิดและข้อมูลยาจาก prototype นี้ถูกนำไปพัฒนาต่อเป็นโปรเจคจบ **Pharmacy Label System** ระบบพิมพ์ฉลากยา 3 ภาษา (ไทย / อังกฤษ / จีน) ที่ส่งฉลากดิจิทัลผ่าน LINE OA ได้
+👉 [chalakya.in.th](https://chalakya.in.th)
 
 ---
 
-## 🌳 แนวทางการใช้ SourceTree ร่วมกันในทีม (Git Guidelines)
-
-1. **Pull ทุกครั้งก่อนเริ่มงาน**: กดปุ่ม **Pull** ใน SourceTree เพื่อดึงโค้ดล่าสุดจากเพื่อนร่วมทีมเสมอ
-2. **สร้าง Branch แยกในการทำแต่ละงาน (Feature Branch)**:
-   - ไม่ควรทำงานลงบน Branch `main` โดยตรง
-   - ให้สร้าง Branch ใหม่ เช่น `feature/add-product-form` หรือ `fix/stock-bug`
-3. **Commit งานอย่างสม่ำเสมอ**:
-   - ตรวจสอบไฟล์ในช่อง **Unstaged files** บน SourceTree
-   - ย้ายเฉพาะไฟล์ที่เราแก้ไขจริงๆ ไปที่ **Staged files**
-   - เขียน Commit Message ให้เข้าใจง่าย เช่น `feat: เพิ่มหน้าจัดการสต็อกยา` หรือ `fix: แก้ไขบั๊กคำนวณราคายา`
-4. **Push ขึ้น Remote & สร้าง Pull Request (PR)**: เมื่อทำ Feature เสร็จแล้ว ให้ Push Branch ของคุณขึ้นไป แล้วแจ้งเพื่อนในทีมเพื่อตรวจเช็คก่อน Merge เข้า `main`
-
----
-
-## 📁 โครงสร้างโปรเจกต์เบื้องต้น (Project Structure)
-
-```text
-├── src/
-│   ├── app/                 # หน้าต่าง ๆ ของเว็บ (Next.js App Router)
-│   │   ├── page.jsx         # หน้าหลัก POS
-│   │   ├── drug/[id]/       # หน้ารายละเอียดข้อมูลยา
-│   │   ├── dashboard/       # หน้าแดชบอร์ดจัดการสต็อก/ยอดขาย
-│   │   └── api/             # API Routes สำหรับเชื่อมต่อ Database & AI
-│   ├── components/          # React Components ที่ใช้ร่วมกัน
-│   └── utils/               # ฟังก์ชันช่วยเหลือต่าง ๆ
-├── db/                      # Schema และ Seed Script ของ PostgreSQL
-└── public/                  # รูปภาพและไฟล์ Static ต่างๆ
-```
-
----
-
-## 🛠 คำสั่งที่ใช้งานบ่อย (Available Scripts)
-
-- `npm run dev` : รันเซิร์ฟเวอร์สำหรับพัฒนา (Development Mode)
-- `npm run build` : บิลด์โปรเจกต์สำหรับนำขึ้น Production
-- `npm run start` : รันระบบที่ผ่านการบิลด์แล้ว
-- `npm run lint` : ตรวจสอบความถูกต้องของโค้ด
+พัฒนาโดย **Apichai Chomthong (F1lmw8)** นักศึกษาสาขาวิทยาการคอมพิวเตอร์ มหาวิทยาลัยแม่โจ้
