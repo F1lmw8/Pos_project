@@ -1,0 +1,22 @@
+# ทุกครั้งที่ push ขึ้น branch film ให้ fast-forward branch main ตามอัตโนมัติ
+# ถ้า main มี commit ที่ film ไม่มี (ประวัติแยกกัน) การ push จะล้มเหลวแทนการเขียนทับ
+name: Sync film -> main
+
+on:
+  push:
+    branches: [film]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: film
+          fetch-depth: 0
+
+      - name: Fast-forward main to film
+        run: git push origin HEAD:main
